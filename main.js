@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-let name = 'SpiralFlexiFresnel';
+let name = 'SpiralFresnelFrazzle';
 
 let deltaPhi = 0.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.001;
@@ -340,7 +340,7 @@ function addRaytracingSphere() {
 		side: THREE.DoubleSide,
 		// wireframe: true,
 		uniforms: {
-			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=-1/(b phi), 3 = hyperbolic r  = -b/phi
 			radius: { value: 5.0 },	// radius of the Fresnel lens
 			visible1: { value: true },
 			z1: { value: 0.0 },
@@ -386,7 +386,7 @@ function addRaytracingSphere() {
 
 			varying vec3 intersectionPoint;
 			
-			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=-1/(b phi), 3 = hyperbolic r  = -b/phi
 			uniform float radius;	// radius of the Fresnel lens
 			uniform bool visible1;	// true if component 1 is visible, false otherwise
 			uniform float z1;	// z component of plane of component 1
@@ -520,8 +520,10 @@ function addRaytracingSphere() {
 				{
 				case 1:	// ARCHIMEDEAN
 					return b*c;
-				case 2:	// HYPERBOLIC
+				case 2:	// 2 = hyperbolic r=-1/(b phi)
 					return b/c;
+				case 3:	// 3 = hyperbolic r  = -b/phi
+					return 1./(b*c);
 				case 0:	// LOGARITHMIC
 				default:
 					return exp(b*c);			
@@ -537,7 +539,7 @@ function addRaytracingSphere() {
 				{
 				case 1:	// ARCHIMEDEAN
 					return ceil(-((b*phiPlus - r)/b2pi) - 0.5);
-				case 2:	// HYPERBOLIC
+				case 2:	// 2 = hyperbolic r=-1/(b phi)
 					float twoPi = 2.0*PI;
 					float r2Pi = r*twoPi;
 					float twoPi2 = twoPi*twoPi;
@@ -553,6 +555,22 @@ function addRaytracingSphere() {
 						) / twoPi
 					);
 					// this becomes imaginary if b is <7ish
+				case 3:	// 3 = hyperbolic r  = -b/phi
+					twoPi = 2.0*PI;
+					r2Pi = r*twoPi;
+					twoPi2 = twoPi*twoPi;
+					fl = floor((1./b-phiPlus*r)/r2Pi);
+					return ceil(
+						(1./b-phiPlus*r)/r2Pi
+						+(phiPlus+twoPi*fl)/twoPi
+						-sqrt(
+							phiPlus*phiPlus
+							+phiPlus*twoPi
+							+4.0*phiPlus*PI*fl
+							+twoPi*twoPi*(fl+fl*fl)
+						) / twoPi
+					);
+					// this becomes imaginary if 1/b is >7ish
 				case 0:	// LOGARITHMIC
 				default:
 					return ceil(-((b*phiPlus - log(r))/b2pi) - nHalf);
@@ -577,8 +595,10 @@ function addRaytracingSphere() {
 					{
 						return -(((x/r)+b*y/r2)*(r-r_n))/(f1/r_n);
 					}
-				case 2:	// HYPERBOLIC
+				case 2:	// 2 = hyperbolic r=-1/(b phi)
 					return ((y*(r-r_n)*(r-r_n)/(2.0*r2))-(phiPlus+2.0*n*PI)*(r-r_n)*((x/r)-((y*r_n*r_n)/(b*r2))))/f1;
+				case 3:	// 3 = hyperbolic r  = -b/phi
+					return ((y*(r-r_n)*(r-r_n)/(2.0*r2))-(phiPlus+2.0*n*PI)*(r-r_n)*((x/r)-((y*r_n*r_n)*b/r2)))*f1;
 				case 0:	// LOGARITHMIC
 				default:
 					//In the logarithmic case the focal length, fLog, is constant and hence simply the focalLength.
@@ -604,13 +624,14 @@ function addRaytracingSphere() {
 					//In the Archimedean case the focal length fArch is given by the ratio of the focal length at radius 1 and the radius
 					// hence fArch is given by the focalLength divided by the radius at any given point. 
 					if(alvarezWindingFocusing){
-						return 
-								(r_n-r)*(2.0*r*r*y-b*(r_n+r)*x)/(2.0*f1*r2);
-					}else {
+						return (r_n-r)*(2.0*r*r*y-b*(r_n+r)*x)/(2.0*f1*r2);
+					} else {
 						return -(((y/r)-b*x/r2)*(r-r_n))/(f1/r_n);
 					}
-				case 2:	// HYPERBOLIC
+				case 2:	// 2 = hyperbolic r=-1/(b phi)
 					return -((x*(r-r_n)*(r-r_n)/(2.0*r2))+(phiPlus+2.0*n*PI)*(r-r_n)*((y/r)+((x*r_n*r_n)/(b*r2))))/f1;
+				case 3:	// 3 = hyperbolic r  = -b/phi
+					return -((x*(r-r_n)*(r-r_n)/(2.0*r2))+(phiPlus+2.0*n*PI)*(r-r_n)*((y/r)+((x*r_n*r_n)*b/r2)))*f1;
 				case 0:	// LOGARITHMIC
 				default:
 					//In the logarithmic case the focal length, fLog, is constant and hence simply the focalLength.
@@ -621,8 +642,6 @@ function addRaytracingSphere() {
 					}
 				}
 			}
-			
-				
 
 			// Pass the current ray (start point p, direction d, brightness factor b) through a spiral lens.
 			// z0 is the z coordinate of the plane of the spiral lens;
@@ -803,7 +822,7 @@ function createGUI() {
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
 		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
-		'f<sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
 		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
@@ -824,9 +843,9 @@ function createGUI() {
 
 	gui.add( params, 'Visible 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
 	gui.add( params, 'Visible 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
-	gui.add( params, 'Rotation angle (&deg;)', -90, 90 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
-	gui.add( params, 'Spiral type', { 'Logarithmic': 0, 'Archimedean': 1, 'Hyperbolic': 2 } ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
-	gui.add( params, 'f<sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
+	gui.add( params, 'Spiral type', { 'Logarithmic': 0, 'Archimedean': 1, 'Hyperb. <i>r</i>=-1/(<i>b&phi;</i>)': 2, 'Hyperb. <i>r</i>=-<i>b</i>/<i>&phi;</i>': 3 } ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+	gui.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	gui.add( params, '&Delta;<i>z</i>', 0.000001, 0.1).onChange( (dz) => { deltaZ = dz; } );
 	gui.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
