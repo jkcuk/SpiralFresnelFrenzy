@@ -1107,7 +1107,7 @@ async function share() {
 		fetch(storedPhoto)
 		.then(response => response.blob())
 		.then(blob => {
-			const file = new File([blob], name+storedPhotoDescription+'.png', { type: blob.type });
+			const file = new File([blob], storedPhotoDescription+'.png', { type: blob.type });
 
 			// Use the Web Share API to share the screenshot
 			if (navigator.share) {
@@ -1170,6 +1170,7 @@ function getInfoString() {
 		`&nbsp;&nbsp;Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>` +
 		`&nbsp;&nbsp;Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>` +
 		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>" +
+		'Video stream(s)<br>' +
 		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>` +	// (user-facing) camera
 		`&nbsp;&nbsp;Horizontal fields of view (when seen from the origin)<br>` +
 		`&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>` +	// (user-facing) camera
