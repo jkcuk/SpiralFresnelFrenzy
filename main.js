@@ -1156,33 +1156,31 @@ function postStatus(text) {
 }
 
 function getInfoString() {
-	return `Spiral Fresnel lens<br>` +
-		`&nbsp;&nbsp;Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Rotation angle, &Delta;&phi; = ${deltaPhi.toPrecision(4)}&deg;<br>` +
-		'&nbsp;&nbsp;Spiral type = ' + getCylindricalLensSpiralTypeString() + '<br>' +
-		`&nbsp;&nbsp;Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>` +	// winding parameter of the spiral
-		`&nbsp;&nbsp;<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
-		`&nbsp;&nbsp;&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>` +
-		'&nbsp;&nbsp;Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>` +	// radius of the Fresnel lens
-		`Equivalent lens<br>` +
-		`&nbsp;&nbsp;Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>` +
-		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>" +
-		'Video stream(s)<br>' +
-		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>` +	// (user-facing) camera
-		`&nbsp;&nbsp;Horizontal fields of view (when seen from the origin)<br>` +
-		`&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>` +	// (user-facing) camera
-		`&nbsp;&nbsp;&nbsp;&nbsp;Environment-facing camera = ${fovVideoFeedE.toPrecision(4)}&deg;<br>` +	// (environment-facing) camera
-		`Virtual camera<br>` +
-		`&nbsp;&nbsp;Position = (${camera.position.x.toPrecision(4)}, ${camera.position.y.toPrecision(4)}, ${camera.position.z.toPrecision(4)})<br>` +
-		`&nbsp;&nbsp;Horiz. FOV = ${fovScreen.toPrecision(4)}<br>` +
-		`&nbsp;&nbsp;Aperture radius = ${apertureRadius.toPrecision(4)}<br>` +
-		`&nbsp;&nbsp;Focussing distance = ${focusDistance.toPrecision(4)}<br>` +
+	return `Spiral Fresnel lens<br>\n` +
+		`&nbsp;&nbsp;Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
+		`&nbsp;&nbsp;Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
+		`&nbsp;&nbsp;Rotation angle, &Delta;&phi; = ${deltaPhi.toPrecision(4)}&deg;<br>\n` +
+		'&nbsp;&nbsp;Spiral type = ' + getCylindricalLensSpiralTypeString() + '<br>\n' +
+		`&nbsp;&nbsp;Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
+		`&nbsp;&nbsp;<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		`&nbsp;&nbsp;&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
+		'&nbsp;&nbsp;Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
+		`&nbsp;&nbsp;Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>\n` +	// radius of the Fresnel lens
+		`<br>\nEquivalent lens<br>\n` +
+		`&nbsp;&nbsp;Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>\n` +
+		`&nbsp;&nbsp;Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>\n` +
+		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>\n" +
+		'<br>\nVideo stream(s)<br>\n' +
+		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>\n` +	// (user-facing) camera
+		`&nbsp;&nbsp;Horizontal fields of view (when seen from the origin)<br>\n` +
+		`&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>\n` +	// (user-facing) camera
+		`&nbsp;&nbsp;&nbsp;&nbsp;Environment-facing camera = ${fovVideoFeedE.toPrecision(4)}&deg;<br>\n` +	// (environment-facing) camera
+		`<br>\nVirtual camera<br>\n` +
+		`&nbsp;&nbsp;Position = (${camera.position.x.toPrecision(4)}, ${camera.position.y.toPrecision(4)}, ${camera.position.z.toPrecision(4)})<br>\n` +
+		`&nbsp;&nbsp;Horiz. FOV = ${fovScreen.toPrecision(4)}<br>\n` +
+		`&nbsp;&nbsp;Aperture radius = ${apertureRadius.toPrecision(4)}<br>\n` +
+		`&nbsp;&nbsp;Focussing distance = ${focusDistance.toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Number of rays = ${noOfRays}`
-		// `apertureXHat = (${raytracingSphereShaderMaterial.uniforms.apertureXHat.value.x.toPrecision(4)}, ${raytracingSphereShaderMaterial.uniforms.apertureXHat.value.y.toPrecision(4)}, ${raytracingSphereShaderMaterial.uniforms.apertureXHat.value.z.toPrecision(4)})<br>` +
-		// `apertureYHat = (${raytracingSphereShaderMaterial.uniforms.apertureYHat.value.x.toPrecision(4)}, ${raytracingSphereShaderMaterial.uniforms.apertureYHat.value.y.toPrecision(4)}, ${raytracingSphereShaderMaterial.uniforms.apertureYHat.value.z.toPrecision(4)})`
 		;
 		console.log("*");
 }
