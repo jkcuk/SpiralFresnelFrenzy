@@ -22,7 +22,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 let name = 'SpiralFresnelFrazzle';
 
 let deltaPhi = 0.0;	// angle by which components are rotated relative to each other (in radians)
-let deltaZ = 0.001;
+let deltaZ = 0.0001;
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -140,6 +140,7 @@ function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.b2pi.value = b2pi;
 	raytracingSphereShaderMaterial.uniforms.nHalf.value = Math.log(0.5*(1. + Math.exp(b2pi)))/b2pi;
 
+	raytracingSphereShaderMaterial.uniforms.equivalentLensF.value = calculateEquivalentLensF();
 
 
 	// the tangents for the environment-facing camera video feed
@@ -305,6 +306,20 @@ function createVideoFeeds() {
 	}
 }
 
+function getCylindricalLensSpiralTypeString() {
+	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
+		case 0:	
+			return "Logarithmic";
+		case 1: 
+			return "Archimedean";
+		case 2:
+			return "Hyperbolic <i>r</i> = -1/(<i>b&phi;</i>)";
+		case 3: 
+		default:
+			return "Hyperbolic <i>r</i> = -<i>b</i>/<i>&phi;</i>";
+	}
+}
+
 /** create raytracing phere */
 function addRaytracingSphere() {
 	const videoFeedUTexture = new THREE.VideoTexture( videoFeedU );
@@ -353,6 +368,8 @@ function addRaytracingSphere() {
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
 			alvarezWindingFocusing: { value: false },
+			showEquivalentLens: { value: false },
+			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
 			videoFeedETexture: { value: videoFeedETexture }, 
 			halfWidthU: { value: 1.0 },
@@ -399,6 +416,8 @@ function addRaytracingSphere() {
 			uniform float b2pi;	// pre-calculated
 			uniform float nHalf;	// pre-calculated
 			uniform bool alvarezWindingFocusing;
+			uniform bool showEquivalentLens;
+			uniform float equivalentLensF;
 
 			// video feed from user-facing camera
 			uniform sampler2D videoFeedUTexture;
@@ -694,6 +713,20 @@ function addRaytracingSphere() {
 				}
 			}
 
+			void passThroughEquivalentLens(
+				inout vec3 p, 
+				inout vec3 d, 
+				inout vec4 b
+			) {
+				passThroughLens(
+					p, d, b,	// the ray
+					vec3(0, 0, 0),	// centreOfLens
+					radius, 
+					equivalentLensF,	// focal length
+					true	// idealLens
+				);
+			}
+
 			// propagate the ray to the plane of the video feed, which is a z-distance <videoDistance> away,
 			// and return either the color of the corresponding video-feed texel or the background color
 			vec4 getColorOfVideoFeed(
@@ -745,15 +778,21 @@ function addRaytracingSphere() {
 	
 					if(d.z < 0.0) {
 						// the ray is travelling "forwards", in the (-z) direction;
-						// pass first through component 1, then component 2, then to environment-facing video feed
-						if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
-						if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+						else {
+							// pass first through component 1, then component 2, then to environment-facing video feed
+							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+						}
 						color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));	// white
 					} else {
 						// the ray is travelling "backwards", in the (+z) direction;
-						// pass first through component 2, then component 1, then to user-facing video feed
-						if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
-						if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+						else {
+							// pass first through component 2, then component 1, then to user-facing video feed
+							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+						}
 						color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));	// white
 					}
 		
@@ -767,6 +806,20 @@ function addRaytracingSphere() {
 	});
 	raytracingSphere = new THREE.Mesh( geometry, raytracingSphereShaderMaterial ); 
 	scene.add( raytracingSphere );
+}
+
+// return the focal length of the Fresnel lens
+function calculateEquivalentLensF() {
+	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
+		case 0:	// logarithmic
+		case 1:	// Archimedean
+			return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
+		case 2:	// Hyperbolic
+			return -raytracingSphereShaderMaterial.uniforms.f1.value/deltaPhi;
+		case 3:	// Hyperbolic
+		default:
+			return -1.0/(raytracingSphereShaderMaterial.uniforms.f1.value*deltaPhi);
+	}
 }
 
 function addEventListenersEtc() {
@@ -826,6 +879,7 @@ function createGUI() {
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
 		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
+		'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
 		'Horiz. FOV (&deg;)': fovScreen,
 		'Aperture radius': apertureRadius,
 		'tan<sup>-1</sup>(focus. dist.)': Math.atan(focusDistance),
@@ -844,12 +898,18 @@ function createGUI() {
 	gui.add( params, 'Visible 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
 	gui.add( params, 'Visible 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
 	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
-	gui.add( params, 'Spiral type', { 'Logarithmic': 0, 'Archimedean': 1, 'Hyperb. <i>r</i>=-1/(<i>b&phi;</i>)': 2, 'Hyperb. <i>r</i>=-<i>b</i>/<i>&phi;</i>': 3 } ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+	gui.add( params, 'Spiral type', 
+		{ 
+			'Logarithmic': 0, 
+			'Archimedean': 1, 
+			'Hyperb. <i>r</i>=-1/(<i>b&phi;</i>)': 2, 
+			'Hyperb. <i>r</i>=-<i>b</i>/<i>&phi;</i>': 3 
+		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	gui.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	gui.add( params, '&Delta;<i>z</i>', 0.000001, 0.1).onChange( (dz) => { deltaZ = dz; } );
+	gui.add( params, '&Delta;<i>z</i>', 0.00001, 0.1).onChange( (dz) => { deltaZ = dz; } );
 	gui.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
-
+	gui.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
 	const folderDevice = gui.addFolder( 'Device cameras horiz. FOV' );
 	folderDevice.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	folderDevice.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
@@ -1053,6 +1113,7 @@ async function share() {
 			if (navigator.share) {
 				navigator.share({
 					title: storedPhotoDescription,
+					text: storedPhotoInfoString,
 					files: [file],
 				});
 			} else {
@@ -1095,12 +1156,20 @@ function postStatus(text) {
 }
 
 function getInfoString() {
-	return `<br>` +
-		`&nbsp;&nbsp;Visible 1`+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Visible 2`+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>` +
-		`&nbsp;&nbsp;Rotation angle = ${deltaPhi.toPrecision(4)}&deg;<br>` +
+	return `Spiral Fresnel lens<br>` +
+		`&nbsp;&nbsp;Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>` +
+		`&nbsp;&nbsp;Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>` +
+		`&nbsp;&nbsp;Rotation angle, &Delta;&phi; = ${deltaPhi.toPrecision(4)}&deg;<br>` +
+		'&nbsp;&nbsp;Spiral type = ' + getCylindricalLensSpiralTypeString() + '<br>' +
+		`&nbsp;&nbsp;Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>` +	// winding parameter of the spiral
+		`&nbsp;&nbsp;<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		`&nbsp;&nbsp;&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>` +
+		'&nbsp;&nbsp;Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>` +
+		`&nbsp;&nbsp;Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>` +	// radius of the Fresnel lens
+		`Equivalent lens<br>` +
+		`&nbsp;&nbsp;Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>` +
+		`&nbsp;&nbsp;Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>` +
 		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>" +
-		`Video feeds<br>` +
 		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>` +	// (user-facing) camera
 		`&nbsp;&nbsp;Horizontal fields of view (when seen from the origin)<br>` +
 		`&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>` +	// (user-facing) camera
