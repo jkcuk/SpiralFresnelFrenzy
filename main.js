@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-let name = 'SpiralFresnelFrazzle';
+let name = 'SpiralFresnelFrenzy';
 
 let deltaPhi = 0.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.0001;
