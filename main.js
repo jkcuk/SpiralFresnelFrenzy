@@ -725,6 +725,9 @@ function addRaytracingSphere() {
 					equivalentLensF,	// focal length
 					true	// idealLens
 				);
+
+				// lower the brightness factor, giving the light a blue tinge
+				b *= vec4(0.9, 0.9, 0.99, 1);
 			}
 
 			// propagate the ray to the plane of the video feed, which is a z-distance <videoDistance> away,
@@ -870,8 +873,8 @@ function createGUI() {
 	// gui.hide();
 
 	const params = {
-		'Visible 1': raytracingSphereShaderMaterial.uniforms.visible1.value,
-		'Visible 2': raytracingSphereShaderMaterial.uniforms.visible2.value,
+		'Show component 1': raytracingSphereShaderMaterial.uniforms.visible1.value,
+		'Show component 2': raytracingSphereShaderMaterial.uniforms.visible2.value,
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
 		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
@@ -895,21 +898,24 @@ function createGUI() {
 		}
 	}
 
-	gui.add( params, 'Visible 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
-	gui.add( params, 'Visible 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
 	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
-	gui.add( params, 'Spiral type', 
+
+	const folderComponents = gui.addFolder( 'Optical components' );
+	folderComponents.add( params, 'Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
+	folderComponents.add( params, 'Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
+	folderComponents.add( params, 'Spiral type', 
 		{ 
 			'Logarithmic': 0, 
 			'Archimedean': 1, 
 			'Hyperb. <i>r</i>=-1/(<i>b&phi;</i>)': 2, 
 			'Hyperb. <i>r</i>=-<i>b</i>/<i>&phi;</i>': 3 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
-	gui.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	gui.add( params, '&Delta;<i>z</i>', 0.00001, 0.1).onChange( (dz) => { deltaZ = dz; } );
-	gui.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	gui.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
-	gui.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+	folderComponents.add( params, '&Delta;<i>z</i>', 0.00001, 0.1).onChange( (dz) => { deltaZ = dz; } );
+	folderComponents.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
+	folderComponents.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+	folderComponents.add( params, 'Radius', 0.1, 10 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
 	const folderDevice = gui.addFolder( 'Device cameras horiz. FOV' );
 	folderDevice.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	folderDevice.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
@@ -924,6 +930,7 @@ function createGUI() {
 		0.5*Math.PI
 	).onChange( (a) => { focusDistance = Math.tan(a); } );
 	folderVirtualCamera.add( params, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
+	folderVirtualCamera.close();
 
 	const folderSettings = gui.addFolder( 'Other controls' );
 	folderSettings.add( params, 'tan<sup>-1</sup>(video dist.)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
