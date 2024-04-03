@@ -64,8 +64,8 @@ let storedPhoto;
 let storedPhotoDescription;
 let storedPhotoInfoString;
 
-// from https://github.com/4nt0nio/jpegcam
-const click = new Audio('./shutter.mp3');
+// my Canon EOS450D
+const click = new Audio('./click.m4a');
 
 // uncomment the foolowing lines, and 
 // stats.begin();
