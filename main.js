@@ -18,6 +18,7 @@ import * as THREE from 'three';
 
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let name = 'SpiralFresnelFrenzy';
 
@@ -78,6 +79,7 @@ const click = new Audio('./click.m4a');
 
 init();
 animate();
+// renderer.setAnimationLoop( animate );
 
 function init() {
 	// create the info element first so that any problems can be communicated
@@ -93,6 +95,8 @@ function init() {
 	renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	// renderer.xr.enabled = true;
+	// document.body.appendChild( VRButton.createButton( renderer ) );	// for VR content
 	document.body.appendChild( renderer.domElement );
 	// document.getElementById('livePhoto').appendChild( renderer.domElement );
 
@@ -177,7 +181,7 @@ function updateUniforms() {
 	let viewDirection = new THREE.Vector3();
 	let apertureBasisVector1 = new THREE.Vector3();
 	let apertureBasisVector2 = new THREE.Vector3();
-	camera.getWorldDirection(viewDirection);
+	camera.getWorldDirection(viewDirection).normalize();
 	// if(counter < 10) console.log(`viewDirection = (${viewDirection.x.toPrecision(2)}, ${viewDirection.y.toPrecision(2)}, ${viewDirection.z.toPrecision(2)})`);
 
 	if((viewDirection.x == 0.0) && (viewDirection.y == 0.0)) {
@@ -187,10 +191,15 @@ function updateUniforms() {
 		// viewDirection is not along z direction
 		apertureBasisVector1.crossVectors(viewDirection, new THREE.Vector3(0, 0, 1)).normalize();
 	}
+	apertureBasisVector1.crossVectors(THREE.Object3D.DEFAULT_UP, viewDirection).normalize();
 	// viewDirection = new THREE.Vector3(0, 0, -1);
 	// apertureBasisVector1 = new THREE.Vector3(1, 0, 0);
 	apertureBasisVector2.crossVectors(viewDirection, apertureBasisVector1).normalize();
 
+	let cameraFeedCentre = new THREE.Vector3(0, 0, 0);
+	// cameraFeedCentre.copy(camera.position);
+	cameraFeedCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
+	// postStatus(`cameraFeedCentre=(${cameraFeedCentre.x}, ${cameraFeedCentre.y}, ${cameraFeedCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
 	// apertureBasis2 *= apertureRadius;
 
@@ -213,12 +222,16 @@ function updateUniforms() {
 	// 	}
 	// } while (i < noOfRays);
 	raytracingSphereShaderMaterial.uniforms.noOfRays.value = noOfRays;
-	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.x = apertureRadius*apertureBasisVector1.x;
-	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.y = apertureRadius*apertureBasisVector1.y;
-	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.z = apertureRadius*apertureBasisVector1.z;
-	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.x = apertureRadius*apertureBasisVector2.x;
-	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.y = apertureRadius*apertureBasisVector2.y;
-	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.z = apertureRadius*apertureBasisVector2.z;
+	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.copy(apertureBasisVector1);
+	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.copy(apertureBasisVector2);
+	raytracingSphereShaderMaterial.uniforms.viewDirection.value.copy(viewDirection);
+	raytracingSphereShaderMaterial.uniforms.cameraFeedCentre.value.copy(cameraFeedCentre);
+	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.x = apertureRadius*apertureBasisVector1.x;
+	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.y = apertureRadius*apertureBasisVector1.y;
+	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.z = apertureRadius*apertureBasisVector1.z;
+	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.x = apertureRadius*apertureBasisVector2.x;
+	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.y = apertureRadius*apertureBasisVector2.y;
+	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.z = apertureRadius*apertureBasisVector2.z;
 	// raytracingSphereShaderMaterial.uniforms.pointsOnAperture.value = pointsOnAperture;
 	raytracingSphereShaderMaterial.uniforms.apertureRadius.value = apertureRadius;
 	raytracingSphereShaderMaterial.uniforms.focusDistance.value = focusDistance;
@@ -383,7 +396,10 @@ function addRaytracingSphere() {
 			apertureRadius: { value: apertureRadius },
 			randomNumbersX: { value: randomNumbersX },
 			randomNumbersY: { value: randomNumbersY },
-			noOfRays: { value: 1 }
+			noOfRays: { value: 1 },
+			viewDirection: { value: new THREE.Vector3(0, 0, -1) },
+			cameraFeedCentre: { value: new THREE.Vector3(0, 0, -1) },
+			keepVideoFeedForward: { value: true }
 		},
 		vertexShader: `
 			varying vec3 intersectionPoint;
@@ -435,10 +451,13 @@ function addRaytracingSphere() {
 			uniform int noOfRays;
 			uniform vec3 apertureXHat;
 			uniform vec3 apertureYHat;
+			uniform vec3 viewDirection;
+			uniform vec3 cameraFeedCentre;
 			uniform float apertureRadius;
 			uniform float randomNumbersX[100];
 			uniform float randomNumbersY[100];
 			// uniform float apertureRadius;
+			uniform bool keepVideoFeedForward;
 
 			// rotate the 2D vector v by the angle alpha (in radians)
 			// from https://gist.github.com/yiwenl/3f804e80d0930e34a0b33359259b556c
@@ -757,6 +776,55 @@ function addRaytracingSphere() {
 				}
 			}
 
+			// propagate the ray starting at position p and with direction d to the plane containing the video feed, providing that plane
+			// is in the ray's "forward" direction;
+			// p becomes the point where the ray intersects the plane;
+			// isForward is set to true or false depending on whether the intersection point is forwards or backwards along the ray
+			void propagateForwardToVideoFeedPlane(
+				inout vec3 p, 
+				vec3 d, 
+				inout bool isForward
+			) {
+				// calculate the distance in the view direction from the ray start position to c
+				float deltaV = dot(cameraFeedCentre-p, viewDirection);
+
+				// calculate the component in the view direction of the light-ray direction d
+				float dV = dot(d, viewDirection);
+
+				// is the intersection with the plane in the ray's "forward" direction?
+				isForward = true; (dV*deltaV > 0.0);
+
+				// if the intersection is in the forward direction, advance the ray to the plane
+				if(isForward) p += d/dV*deltaV;	// set p to the intersection point with the plane
+			}
+
+			vec4 getColorOfVideoFeed(
+				inout vec3 p, 
+				vec3 d, 
+				vec4 b,
+				sampler2D videoFeedTexture,
+				float halfWidth,
+				float halfHeight,
+				vec4 backgroundColor
+			) {
+				bool isForward;
+				propagateForwardToVideoFeedPlane(p, d, isForward);
+
+				// is the intersection in the ray's forward direction?
+				if(isForward) {
+					float x = dot(p, apertureXHat);
+					float y = dot(p, apertureYHat);
+					// does the ray intersect the image?
+					if((abs(x) < halfWidth) && (abs(y) < halfHeight))
+						// yes, the ray intersects the image; take the pixel colour from the camera's video feed
+						return texture2D(videoFeedTexture, vec2(0.5+0.5*x/halfWidth, 0.5+0.5*y/halfHeight));
+					else 
+						// the ray doesn't intersect the image
+						return backgroundColor;
+				}
+				return vec4(0, 1, 0, 1);	// green
+			}
+
 			void main() {
 				// first calculate the point this pixel is focussed on
 				vec3 dF = intersectionPoint - cameraPosition;
@@ -787,7 +855,8 @@ function addRaytracingSphere() {
 							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
 							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
 						}
-						color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));	// white
+						if(keepVideoFeedForward) color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
+						else color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
 					} else {
 						// the ray is travelling "backwards", in the (+z) direction;
 						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
@@ -796,7 +865,8 @@ function addRaytracingSphere() {
 							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
 							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
 						}
-						color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));	// white
+						if(keepVideoFeedForward) color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
+						else color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));
 					}
 		
 					// finally, multiply by the brightness factor and add to gl_FragColor
@@ -890,6 +960,7 @@ function createGUI() {
 		'Env.-facing cam. (&deg;)': fovVideoFeedE,
 		'User-facing cam. (&deg;)': fovVideoFeedU,
 		'tan<sup>-1</sup>(video dist.)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
+		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
 		'Point (virtual) cam. forward (in -<b>z</b> direction)': pointForward,
 		'Show/hide info': toggleInfoVisibility,
 		'Restart video streams': function() { 
@@ -929,6 +1000,7 @@ function createGUI() {
 	folderVirtualCamera.close();
 
 	const folderDevice = gui.addFolder( 'Device cameras horiz. FOV' );
+	folderDevice.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
 	folderDevice.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	folderDevice.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
 	folderDevice.close();
