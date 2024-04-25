@@ -132,6 +132,123 @@ function animate() {
 	// stats.end();
 }
 
+// function updateUniforms() {
+// 	raytracingSphereShaderMaterial.uniforms.phi1.value = -0.5*deltaPhi;
+// 	raytracingSphereShaderMaterial.uniforms.phi2.value = +0.5*deltaPhi;
+
+// 	// arrange them symmetrically around z=0
+// 	raytracingSphereShaderMaterial.uniforms.z1.value = +0.5*deltaZ;
+// 	raytracingSphereShaderMaterial.uniforms.z2.value = -0.5*deltaZ;
+
+// 	let b2pi = raytracingSphereShaderMaterial.uniforms.b.value*2.0*Math.PI;
+// 	raytracingSphereShaderMaterial.uniforms.b2pi.value = b2pi;
+// 	raytracingSphereShaderMaterial.uniforms.nHalf.value = Math.log(0.5*(1. + Math.exp(b2pi)))/b2pi;
+
+// 	raytracingSphereShaderMaterial.uniforms.equivalentLensF.value = calculateEquivalentLensF();
+
+
+// 	// the tangents for the environment-facing camera video feed
+// 	let tanHalfFovHE, tanHalfFovVE;
+// 	if(aspectRatioVideoFeedE > 1.0) {
+// 		// horizontal orientation
+// 		tanHalfFovHE = Math.tan(0.5*fovVideoFeedE*Math.PI/180.0);
+// 		tanHalfFovVE = Math.tan(0.5*fovVideoFeedE*Math.PI/180.0)/aspectRatioVideoFeedE;
+// 	} else {
+// 		// vertical orientation
+// 		tanHalfFovHE = Math.tan(0.5*fovVideoFeedE*Math.PI/180.0)*aspectRatioVideoFeedE;
+// 		tanHalfFovVE = Math.tan(0.5*fovVideoFeedE*Math.PI/180.0);
+// 	}
+// 	raytracingSphereShaderMaterial.uniforms.halfWidthE.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovHE;
+// 	raytracingSphereShaderMaterial.uniforms.halfHeightE.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovVE;
+
+// 	// the tangents for the user-facing camera video feed
+// 	let tanHalfFovHU, tanHalfFovVU;
+// 	if(aspectRatioVideoFeedU > 1.0) {
+// 		// horizontal orientation
+// 		tanHalfFovHU = Math.tan(0.5*fovVideoFeedU*Math.PI/180.0);
+// 		tanHalfFovVU = Math.tan(0.5*fovVideoFeedU*Math.PI/180.0)/aspectRatioVideoFeedU;
+// 	} else {
+// 		// vertical orientation
+// 		tanHalfFovHU = Math.tan(0.5*fovVideoFeedU*Math.PI/180.0)*aspectRatioVideoFeedU;
+// 		tanHalfFovVU = Math.tan(0.5*fovVideoFeedU*Math.PI/180.0);
+// 	}
+// 	raytracingSphereShaderMaterial.uniforms.halfWidthU.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovHU;
+// 	raytracingSphereShaderMaterial.uniforms.halfHeightU.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovVU;
+
+// 	// create the points on the aperture
+
+// 	// create basis vectors for the camera's clear aperture
+// 	let viewDirection = new THREE.Vector3();
+// 	let apertureBasisVector1 = new THREE.Vector3();
+// 	let apertureBasisVector2 = new THREE.Vector3();
+// 	camera.getWorldDirection(viewDirection);
+// 	// if(counter < 10) console.log(`viewDirection = (${viewDirection.x.toPrecision(2)}, ${viewDirection.y.toPrecision(2)}, ${viewDirection.z.toPrecision(2)})`);
+
+// 	if((viewDirection.x == 0.0) && (viewDirection.y == 0.0)) {
+// 		// viewDirection is along z direction
+// 		apertureBasisVector1.crossVectors(viewDirection, new THREE.Vector3(1, 0, 0)).normalize();
+// 	} else {
+// 		// viewDirection is not along z direction
+// 		apertureBasisVector1.crossVectors(viewDirection, new THREE.Vector3(0, 0, 1)).normalize();
+// 	}
+// 	// viewDirection = new THREE.Vector3(0, 0, -1);
+// 	// apertureBasisVector1 = new THREE.Vector3(1, 0, 0);
+// 	apertureBasisVector2.crossVectors(viewDirection, apertureBasisVector1).normalize();
+
+// 	// apertureBasis1 *= apertureRadius;
+// 	// apertureBasis2 *= apertureRadius;
+
+// 	// if(counter < 10) console.log(`apertureBasisVector1 = (${apertureBasisVector1.x.toPrecision(2)}, ${apertureBasisVector1.y.toPrecision(2)}, ${apertureBasisVector1.z.toPrecision(2)})`);
+// 	// if(counter < 10) console.log(`apertureBasisVector2 = (${apertureBasisVector2.x.toPrecision(2)}, ${apertureBasisVector2.y.toPrecision(2)}, ${apertureBasisVector2.z.toPrecision(2)})`);
+// 	// counter++;
+
+// 	// create random points on the (circular) aperture
+// 	// let i=0;
+// 	// pointsOnAperture = [];	// clear the array containing points on the aperture
+// 	// do {
+// 	// 	// create a new random point on the camera's clear aperture
+// 	// 	let x = 2*Math.random()-1;	// random number between -1 and 1
+// 	// 	let y = 2*Math.random()-1;	// random number between -1 and 1
+// 	// 	if(x*x + y*y <= 1) {
+// 	// 		// (x,y) lies within a circle of radius 1
+// 	// 		//  add a new point to the array of points on the aperture
+// 	// 		pointsOnAperture.push(apertureRadius*x*apertureBasis1 + apertureRadius*y*apertureBasis2);
+// 	// 		i++;
+// 	// 	}
+// 	// } while (i < noOfRays);
+// 	raytracingSphereShaderMaterial.uniforms.noOfRays.value = noOfRays;
+// 	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.copy(apertureBasisVector1);
+// 	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.copy(apertureBasisVector2);
+// 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.x = apertureRadius*apertureBasisVector1.x;
+// 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.y = apertureRadius*apertureBasisVector1.y;
+// 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.z = apertureRadius*apertureBasisVector1.z;
+// 	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.x = apertureRadius*apertureBasisVector2.x;
+// 	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.y = apertureRadius*apertureBasisVector2.y;
+// 	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.z = apertureRadius*apertureBasisVector2.z;
+// 	// raytracingSphereShaderMaterial.uniforms.pointsOnAperture.value = pointsOnAperture;
+// 	raytracingSphereShaderMaterial.uniforms.apertureRadius.value = apertureRadius;
+// 	raytracingSphereShaderMaterial.uniforms.focusDistance.value = focusDistance;
+
+// 	// (re)create random numbers
+// 	// let i=0;
+// 	// let randomNumbersX = [];
+// 	// let randomNumbersY = [];
+// 	// do {
+// 	// 	// create a new pairs or random numbers (x, y) such that x^2 + y^2 <= 1
+// 	// 	let x = 2*Math.random()-1;	// random number between -1 and 1
+// 	// 	let y = 2*Math.random()-1;	// random number between -1 and 1
+// 	// 	if(x*x + y*y <= 1) {
+// 	// 		// (x,y) lies within a circle of radius 1
+// 	// 		//  add a new point to the array of points on the aperture
+// 	// 		randomNumbersX.push(apertureRadius*x);
+// 	// 		randomNumbersY.push(apertureRadius*y);
+// 	// 		i++;
+// 	// 	}
+// 	// } while (i < 100);
+// 	// raytracingSphereShaderMaterial.uniforms.randomNumbersX.value = randomNumbersX;
+// 	// raytracingSphereShaderMaterial.uniforms.randomNumbersY.value = randomNumbersY;
+// }
+
 function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.phi1.value = -0.5*deltaPhi;
 	raytracingSphereShaderMaterial.uniforms.phi2.value = +0.5*deltaPhi;
@@ -256,6 +373,7 @@ function updateUniforms() {
 	// raytracingSphereShaderMaterial.uniforms.randomNumbersY.value = randomNumbersY;
 }
 
+
 function createVideoFeeds() {
 	// create the video stream for the user-facing camera first, as some devices (such as my iPad), which have both cameras,
 	// but can (for whatever reason) only have a video feed from one at a time, seem to go with the video stream that was
@@ -326,10 +444,8 @@ function getCylindricalLensSpiralTypeString() {
 		case 1: 
 			return "Archimedean";
 		case 2:
-			return "Hyperbolic <i>r</i> = -1/(<i>b&phi;</i>)";
-		case 3: 
 		default:
-			return "Hyperbolic <i>r</i> = -<i>b</i>/<i>&phi;</i>";
+			return "Hyperbolic <i>r</i> = 1/(<i>b&phi;</i>)";
 	}
 }
 
@@ -368,7 +484,7 @@ function addRaytracingSphere() {
 		side: THREE.DoubleSide,
 		// wireframe: true,
 		uniforms: {
-			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=-1/(b phi), 3 = hyperbolic r  = -b/phi
+			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(b phi)
 			radius: { value: 5.0 },	// radius of the Fresnel lens
 			visible1: { value: true },
 			z1: { value: 0.0 },
@@ -380,7 +496,7 @@ function addRaytracingSphere() {
 			b: { value: 0.01 },	// winding parameter of the spiral
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
-			alvarezWindingFocusing: { value: false },
+			alvarezWindingFocusing: { value: true },
 			showEquivalentLens: { value: false },
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
@@ -419,7 +535,7 @@ function addRaytracingSphere() {
 
 			varying vec3 intersectionPoint;
 			
-			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=-1/(b phi), 3 = hyperbolic r  = -b/phi
+			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=b/phi
 			uniform float radius;	// radius of the Fresnel lens
 			uniform bool visible1;	// true if component 1 is visible, false otherwise
 			uniform float z1;	// z component of plane of component 1
@@ -459,13 +575,18 @@ function addRaytracingSphere() {
 			// uniform float apertureRadius;
 			uniform bool keepVideoFeedForward;
 
+			// rotation matrix that rotates 2D vectors by the angle alpha (in radians)
+			// from https://gist.github.com/yiwenl/3f804e80d0930e34a0b33359259b556c
+			mat2 getRotationMatrix(float alpha) {
+				float s = sin(alpha);
+				float c = cos(alpha);
+				return mat2(c, s, -s, c);
+			}
+
 			// rotate the 2D vector v by the angle alpha (in radians)
 			// from https://gist.github.com/yiwenl/3f804e80d0930e34a0b33359259b556c
 			vec2 rotate(vec2 v, float alpha) {
-				float s = sin(alpha);
-				float c = cos(alpha);
-				mat2 m = mat2(c, s, -s, c);
-				return m * v;
+				return getRotationMatrix(alpha) * v;
 			}
 
 			// propagate the ray starting at position p and with direction d to the plane z = z0, providing that plane
@@ -544,139 +665,73 @@ function addRaytracingSphere() {
 						lensDeflect(d, pixy, focalLength, idealLens);
 
 						// lower the brightness factor, giving the light a blue tinge
-						b *= vec4(0.9, 0.9, 0.99, 1);
+						b *= vec4(0.96, 0.96, 0.99, 1);
 					} 
 				}
 			}
 
-			// Calculate the distance r from the centre of the logarithmic or archimedean spiral with r = a Exp(b (phi + n*2*pi)) or r = a + b (phi + n*2*pi) respectively.
-			// Note that the values of phi are restricted to the range [0, 2 pi].
-			float calculateSpiralDistanceFromCentre(float phi, float n, float deltaPhi)
-			{
-				float c = phi + deltaPhi+n*2.0*PI;
+			// calculate the number of the winding that corresponds to position (r, psi)
+			float calculateN(float r, float psi) {
 				switch(cylindricalLensSpiralType)
 				{
 				case 1:	// ARCHIMEDEAN
-					return b*c;
-				case 2:	// 2 = hyperbolic r=-1/(b phi)
-					return b/c;
-				case 3:	// 3 = hyperbolic r  = -b/phi
-					return 1./(b*c);
+					// return floor(((r - b*psi)/b2pi) + 0.5);
+					return floor(0.5 + (r - b*psi) / b2pi);
+				case 2:	// hyperbolic
+					return floor(0.5 + (1.0/(r*b) - psi)/(2.0*PI));
 				case 0:	// LOGARITHMIC
 				default:
-					return exp(b*c);			
-				}
-			}
-		
-			// calculate the number of the winding that corresponds to position (r, phi)
-			float calculateN(float r, float phi, float deltaPhi)
-			{
-				float phiPlus = phi+deltaPhi;
-				
-				switch(cylindricalLensSpiralType)
-				{
-				case 1:	// ARCHIMEDEAN
-					return ceil(-((b*phiPlus - r)/b2pi) - 0.5);
-				case 2:	// 2 = hyperbolic r=-1/(b phi)
-					float twoPi = 2.0*PI;
-					float r2Pi = r*twoPi;
-					float twoPi2 = twoPi*twoPi;
-					float fl = floor((b-phiPlus*r)/r2Pi);
-					return ceil(
-						(b-phiPlus*r)/r2Pi
-						+(phiPlus+twoPi*fl)/twoPi
-						-sqrt(
-								phiPlus*phiPlus
-								+phiPlus*twoPi
-								+4.0*phiPlus*PI*fl
-								+twoPi*twoPi*(fl+fl*fl)
-						) / twoPi
-					);
-					// this becomes imaginary if b is <7ish
-				case 3:	// 3 = hyperbolic r  = -b/phi
-					twoPi = 2.0*PI;
-					r2Pi = r*twoPi;
-					twoPi2 = twoPi*twoPi;
-					fl = floor((1./b-phiPlus*r)/r2Pi);
-					return ceil(
-						(1./b-phiPlus*r)/r2Pi
-						+(phiPlus+twoPi*fl)/twoPi
-						-sqrt(
-							phiPlus*phiPlus
-							+phiPlus*twoPi
-							+4.0*phiPlus*PI*fl
-							+twoPi*twoPi*(fl+fl*fl)
-						) / twoPi
-					);
-					// this becomes imaginary if 1/b is >7ish
-				case 0:	// LOGARITHMIC
-				default:
-					return ceil(-((b*phiPlus - log(r))/b2pi) - nHalf);
+					return floor(((log(r) - b*psi)/b2pi) + 0.5);
 				}
 			}
 
-			float calculateXDerivative(float x, float y, float r, float r2, float phi, float n, float f1, float deltaPhi)
-			{	
-				float r_n = calculateSpiralDistanceFromCentre(phi, n, deltaPhi);
-				float phiPlus = phi+deltaPhi;
-		
-				// calculated in Mathematica
+			// For the position (x, y), calculate the derivatives of the phase w.r.t. x and y, divided by k, i.e. (d (phase/k) / d x, d (phase/k) / d y).
+			// The spiral is rotated by deltaPhi.
+			// r2 is the square of r, which we need to calculate r and which we have already calculated, so we might
+			// as well pass it.
+			vec2 calculateDerivatives(float x, float y, float r2, float f1) {
+				// calculate r and psi, the polar coordinates
+				float r = sqrt(r2);
+				float psi = atan(y, x);	// azimuthal angle, bound to the range [-pi, pi]
+				float n = calculateN(r, psi);	// the number of the winding the position (x, y) is on
+				float phi = psi + n*2.0*PI;	// (unbound) azimuthal angle phi
+
+				float c;	// common factor
 				switch(cylindricalLensSpiralType)
 				{
 				case 1:	// ARCHIMEDEAN
-					//In the Archimedean case the focal length fArch is given by the ratio of the focal length at radius 1 and the radius
-					// hence fArch is given by the focalLength divided by the radius at any given point. 
-					if(alvarezWindingFocusing){
-						return (r_n-r)*(2.0*r*r*x+b*(r_n+r)*y)/(2.0*f1*r2);
-					}
-					else
-					{
-						return -(((x/r)+b*y/r2)*(r-r_n))/(f1/r_n);
-					}
-				case 2:	// 2 = hyperbolic r=-1/(b phi)
-					return ((y*(r-r_n)*(r-r_n)/(2.0*r2))-(phiPlus+2.0*n*PI)*(r-r_n)*((x/r)-((y*r_n*r_n)/(b*r2))))/f1;
-				case 3:	// 3 = hyperbolic r  = -b/phi
-					return ((y*(r-r_n)*(r-r_n)/(2.0*r2))-(phiPlus+2.0*n*PI)*(r-r_n)*((x/r)-((y*r_n*r_n)*b/r2)))*f1;
-				case 0:	// LOGARITHMIC
-				default:
-					//In the logarithmic case the focal length, fLog, is constant and hence simply the focalLength.
-					if(alvarezWindingFocusing){
-						return (-r*r2*(3.0*x+b*y)+3.0*r*r_n*r_n*(x-b*y)+4.0*b*y*r_n*r_n*r_n)/(6.0*r_n*f1*r2);
-					}
-					else
-					{
-						return -(((b*exp(b*(phi+n*2.0*PI))*y)/r2 + x/r) * (-exp(b*(phiPlus+n*2.0*PI)) + r))/f1;
-					}
-				}
-			}
-		
-			float calculateYDerivative(float x, float y, float r, float r2, float phi, float n, float f1, float deltaPhi)
-			{
-				float r_n = calculateSpiralDistanceFromCentre(phi, n, deltaPhi);
-				float phiPlus = phi+deltaPhi;
-		
-				// calculated in Mathematica
-				switch(cylindricalLensSpiralType)
-				{
-				case 1:	// ARCHIMEDEAN
-					//In the Archimedean case the focal length fArch is given by the ratio of the focal length at radius 1 and the radius
-					// hence fArch is given by the focalLength divided by the radius at any given point. 
-					if(alvarezWindingFocusing){
-						return (r_n-r)*(2.0*r*r*y-b*(r_n+r)*x)/(2.0*f1*r2);
+					c = (r - b*phi) / (2.0*f1*r2);
+					if(alvarezWindingFocusing) {
+						return vec2(
+							-c*(b*r*y + 2.0*r2*x + b*b*y*phi),
+							+c*(b*r*x - 2.0*r2*y + b*b*x*phi)
+						);
 					} else {
-						return -(((y/r)-b*x/r2)*(r-r_n))/(f1/r_n);
+						return vec2(
+							+c*b*(-3.0*b*y*phi + r*(y-2.0*x*phi)),
+							-c*b*(-3.0*b*x*phi + r*(x+2.0*y*phi))
+						);
 					}
-				case 2:	// 2 = hyperbolic r=-1/(b phi)
-					return -((x*(r-r_n)*(r-r_n)/(2.0*r2))+(phiPlus+2.0*n*PI)*(r-r_n)*((y/r)+((x*r_n*r_n)/(b*r2))))/f1;
-				case 3:	// 3 = hyperbolic r  = -b/phi
-					return -((x*(r-r_n)*(r-r_n)/(2.0*r2))+(phiPlus+2.0*n*PI)*(r-r_n)*((y/r)+((x*r_n*r_n)*b/r2)))*f1;
+				case 2:	// hyperbolic r = 1/(b phi)
+					c = (b*r*phi - 1.0) / (2.0*b*f1*r2*phi*phi);
+					return vec2(
+						+c*(y + b*r*y*phi - 2.0*b*r*x*phi*phi),
+						-c*(x + b*r*x*phi + 2.0*b*r*y*phi*phi)
+					);
 				case 0:	// LOGARITHMIC
 				default:
-					//In the logarithmic case the focal length, fLog, is constant and hence simply the focalLength.
-					if(alvarezWindingFocusing){
-						return (r*r2*(b*x-3.0*y)+3.0*r*r_n*r_n*(b*x+y)-4.0*b*x*r_n*r_n*r_n)/(6.0*f1*r2*r_n);
-					}else {
-						return -(((-b*exp(b*(phiPlus+n*2.0*PI))*x)/r2 + y/r) * (-exp(b*(phiPlus+n*2.0*PI)) + r))/f1;
+					if(alvarezWindingFocusing) {
+						c = exp(-b*phi)/(6.0*f1*r2);
+						return vec2(
+							c*( 4.0*b*exp(3.0*b*phi)*y + 3.0*exp(2.0*b*phi)*r*(x-b*y) - r*r2*(b*y+3.0*x)),
+							c*(-4.0*b*exp(3.0*b*phi)*x + 3.0*exp(2.0*b*phi)*r*(y+b*x) + r*r2*(b*x-3.0*y))
+						);
+					} else {
+						c = (exp(b*phi)-r)/(f1*r2);
+						return vec2(
+							c*(r*x+b*exp(b*phi)*y),
+							c*(r*y-b*exp(b*phi)*x)
+						);
 					}
 				}
 			}
@@ -704,30 +759,20 @@ function addRaytracingSphere() {
 					if(r2 < radius*radius) {
 						// the intersection point lies inside the radius, so the lens does something to the ray
 
-						// calculate r and phi
-						float r = sqrt(r2);
-						float phi = atan(p.y, p.x);
-
-						float n = calculateN(r, phi, deltaPhi);
-						float xDerivative = calculateXDerivative(p.x, p.y, r, r2, phi, n, f1, deltaPhi);
-						float yDerivative = calculateYDerivative(p.x, p.y, r, r2, phi, n, f1, deltaPhi);
-
-
 						// normalise d
 						vec3 dN = d/length(d);
+						// calculate the phase derivatives, which define the change in the transverse components
+						vec2 pRotated = rotate(p.xy, deltaPhi);
+						vec2 derivs = rotate(calculateDerivatives(pRotated.x, pRotated.y, r2, f1), -deltaPhi);
 						// transverse components of the outgoing light-ray direction
-						vec2 dxy = dN.xy + vec2(xDerivative, yDerivative);
+						vec2 dxy = dN.xy + derivs;
 		
 						// from the transverse direction, construct a 3D vector by setting the z component such that the length
 						// of the vector is 1
 						d = vec3(dxy, sign(d.z)*sqrt(1.0 - dot(dxy, dxy)));						
-										
 
-						// deflect the light-ray direction accordingly and make sure that the sign of the z component remains the same
-						// lensDeflect(d, pixy, 1.0);
-
-						// lower the brightness factor, giving the light a blue tinge
-						b *= vec4(0.9, 0.9, 0.99, 1);
+						// lower the brightness factor, giving the light a slightly blue tinge
+						b *= vec4(0.96, 0.96, 0.99, 1);
 					} 
 				}
 			}
@@ -746,34 +791,7 @@ function addRaytracingSphere() {
 				);
 
 				// lower the brightness factor, giving the light a blue tinge
-				b *= vec4(0.9, 0.9, 0.99, 1);
-			}
-
-			// propagate the ray to the plane of the video feed, which is a z-distance <videoDistance> away,
-			// and return either the color of the corresponding video-feed texel or the background color
-			vec4 getColorOfVideoFeed(
-				inout vec3 p, 
-				vec3 d, 
-				vec4 b,
-				float videoFeedZ,
-				sampler2D videoFeedTexture,
-				float halfWidth,
-				float halfHeight,
-				vec4 backgroundColor
-			) {
-				bool isForward;
-				propagateForwardToZPlane(p, d, videoFeedZ, isForward);
-
-				// is the intersection in the ray's forward direction?
-				if(isForward) {
-					// does the ray intersect the image?
-					if((abs(p.x) < halfWidth) && (abs(p.y) < halfHeight))
-						// yes, the ray intersects the image; take the pixel colour from the camera's video feed
-						return texture2D(videoFeedTexture, vec2(0.5+0.5*p.x/halfWidth, 0.5+0.5*p.y/halfHeight));
-					else 
-						// the ray doesn't intersect the image
-						return backgroundColor;
-				}
+				// b *= vec4(0.9, 0.9, 0.99, 1);
 			}
 
 			// propagate the ray starting at position p and with direction d to the plane containing the video feed, providing that plane
@@ -817,12 +835,39 @@ function addRaytracingSphere() {
 					// does the ray intersect the image?
 					if((abs(x) < halfWidth) && (abs(y) < halfHeight))
 						// yes, the ray intersects the image; take the pixel colour from the camera's video feed
-						return texture2D(videoFeedTexture, vec2(0.5+0.5*x/halfWidth, 0.5+0.5*y/halfHeight));
+						return texture2D(videoFeedTexture, vec2(0.5-0.5*x/halfWidth, 0.5+0.5*y/halfHeight));
 					else 
 						// the ray doesn't intersect the image
 						return backgroundColor;
 				}
 				return vec4(0, 1, 0, 1);	// green
+			}
+
+			// propagate the ray to the plane of the video feed, which is a z-distance <videoDistance> away,
+			// and return either the color of the corresponding video-feed texel or the background color
+			vec4 getColorOfVideoFeed(
+				inout vec3 p, 
+				vec3 d, 
+				vec4 b,
+				float videoFeedZ,
+				sampler2D videoFeedTexture,
+				float halfWidth,
+				float halfHeight,
+				vec4 backgroundColor
+			) {
+				bool isForward;
+				propagateForwardToZPlane(p, d, videoFeedZ, isForward);
+
+				// is the intersection in the ray's forward direction?
+				if(isForward) {
+					// does the ray intersect the image?
+					if((abs(p.x) < halfWidth) && (abs(p.y) < halfHeight))
+						// yes, the ray intersects the image; take the pixel colour from the camera's video feed
+						return texture2D(videoFeedTexture, vec2(0.5+0.5*p.x/halfWidth, 0.5+0.5*p.y/halfHeight));
+					else 
+						// the ray doesn't intersect the image
+						return backgroundColor;
+				}
 			}
 
 			void main() {
@@ -875,6 +920,55 @@ function addRaytracingSphere() {
 					
 				gl_FragColor /= float(noOfRays);
 			}
+
+			// void main() {
+			// 	// first calculate the point this pixel is focussed on
+			// 	vec3 dF = intersectionPoint - cameraPosition;
+			// 	vec3 focusPosition = cameraPosition + focusDistance/abs(dF.z)*dF;
+
+			// 	// trace <noOfRays> rays
+			// 	gl_FragColor = vec4(0, 0, 0, 0);
+			// 	vec4 color;
+			// 	for(int i=0; i<noOfRays; i++) {
+			// 		// the current ray start position, a random point on the camera's circular aperture
+			// 		vec3 p = cameraPosition + apertureRadius*randomNumbersX[i]*apertureXHat + apertureRadius*randomNumbersY[i]*apertureYHat;
+	
+			// 		// first calculate the current light-ray direction:
+			// 		// the ray first passes through focusPosition and then p,
+			// 		// so the "backwards" ray direction from the camera to the intersection point is
+			// 		//   d = focusPosition - p
+			// 		vec3 d = focusPosition - p;
+			// 		d = dF.z/d.z*d;
+	
+			// 		// current brightness factor; this will multiply the colour at the end
+			// 		vec4 b = vec4(1.0, 1.0, 1.0, 1.0);
+	
+			// 		if(d.z < 0.0) {
+			// 			// the ray is travelling "forwards", in the (-z) direction;
+			// 			if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+			// 			else {
+			// 				// pass first through component 1, then component 2, then to environment-facing video feed
+			// 				if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+			// 				if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+			// 			}
+			// 			color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));	// white
+			// 		} else {
+			// 			// the ray is travelling "backwards", in the (+z) direction;
+			// 			if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+			// 			else {
+			// 				// pass first through component 2, then component 1, then to user-facing video feed
+			// 				if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+			// 				if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+			// 			}
+			// 			color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));	// white
+			// 		}
+		
+			// 		// finally, multiply by the brightness factor and add to gl_FragColor
+			// 		gl_FragColor += b*color;
+			// 	}
+					
+			// 	gl_FragColor /= float(noOfRays);
+			// }
 		`
 	});
 	raytracingSphere = new THREE.Mesh( geometry, raytracingSphereShaderMaterial ); 
@@ -888,10 +982,8 @@ function calculateEquivalentLensF() {
 		case 1:	// Archimedean
 			return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
 		case 2:	// Hyperbolic
-			return -raytracingSphereShaderMaterial.uniforms.f1.value/deltaPhi;
-		case 3:	// Hyperbolic
 		default:
-			return -1.0/(raytracingSphereShaderMaterial.uniforms.f1.value*deltaPhi);
+			return -raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
 	}
 }
 
@@ -978,8 +1070,7 @@ function createGUI() {
 		{ 
 			'Logarithmic': 0, 
 			'Archimedean': 1, 
-			'Hyperb. <i>r</i>=-1/(<i>b&phi;</i>)': 2, 
-			'Hyperb. <i>r</i>=-<i>b</i>/<i>&phi;</i>': 3 
+			'Hyperb. <i>R</i>=1/(<i>b&phi;</i>)': 2, 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
@@ -1014,6 +1105,82 @@ function createGUI() {
 	folderSettings.add( params, 'Restart video streams');
 	folderSettings.close();
 }
+
+// // see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
+// function createGUI() {
+// 	// const 
+// 	gui = new GUI();
+// 	// gui.hide();
+
+// 	const params = {
+// 		'Show component 1': raytracingSphereShaderMaterial.uniforms.visible1.value,
+// 		'Show component 2': raytracingSphereShaderMaterial.uniforms.visible2.value,
+// 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
+// 		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+// 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
+// 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+// 		'&Delta;<i>z</i>': deltaZ,
+// 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
+// 		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
+// 		'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
+// 		'Horiz. FOV (&deg;)': fovScreen,
+// 		'Aperture radius': apertureRadius,
+// 		'tan<sup>-1</sup>(focus. dist.)': Math.atan(focusDistance),
+// 		'No of rays': noOfRays,
+// 		'Env.-facing cam. (&deg;)': fovVideoFeedE,
+// 		'User-facing cam. (&deg;)': fovVideoFeedU,
+// 		'tan<sup>-1</sup>(video dist.)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
+// 		'Point (virtual) cam. forward (in -<b>z</b> direction)': pointForward,
+// 		'Show/hide info': toggleInfoVisibility,
+// 		'Restart video streams': function() { 
+// 			recreateVideoFeeds(); 
+// 			postStatus("Restarting video stream");
+// 		}
+// 	}
+
+// 	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
+
+// 	const folderComponents = gui.addFolder( 'Optical components' );
+// 	folderComponents.add( params, 'Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
+// 	folderComponents.add( params, 'Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
+// 	folderComponents.add( params, 'Spiral type', 
+// 		{ 
+// 			'Logarithmic': 0, 
+// 			'Archimedean': 1, 
+// 			'Hyperb. <i>r</i>=1/(<i>b&phi;</i>)': 2
+// 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+// 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+// 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -10*1, 10*1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+// 	folderComponents.add( params, '&Delta;<i>z</i>', 0.00001, 0.1).onChange( (dz) => { deltaZ = dz; } );
+// 	folderComponents.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
+// 	folderComponents.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+// 	folderComponents.add( params, 'Radius', 0.1, 10 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
+	
+// 	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
+// 	folderVirtualCamera.add( params, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
+// 	folderVirtualCamera.add( params, 'Aperture radius', 0.0, 1.0).onChange( (r) => { apertureRadius = r; } );
+// 	folderVirtualCamera.add( params, 'tan<sup>-1</sup>(focus. dist.)', 
+// 		//Math.atan(0.1), 
+// 		-0.5*Math.PI,
+// 		0.5*Math.PI
+// 	).onChange( (a) => { focusDistance = Math.tan(a); } );
+// 	folderVirtualCamera.add( params, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
+// 	folderVirtualCamera.close();
+
+// 	const folderDevice = gui.addFolder( 'Device cameras horiz. FOV' );
+// 	folderDevice.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
+// 	folderDevice.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
+// 	folderDevice.close();
+
+// 	const folderSettings = gui.addFolder( 'Other controls' );
+// 	folderSettings.add( params, 'tan<sup>-1</sup>(video dist.)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
+// 	folderSettings.add( params, 'Lenslet type', { 'Ideal thin': true, 'Phase hologram': false } ).onChange( (t) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = t; });
+// 	// folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
+// 	folderSettings.add( params, 'Point (virtual) cam. forward (in -<b>z</b> direction)');
+// 	folderSettings.add( params, 'Show/hide info');
+// 	folderSettings.add( params, 'Restart video streams');
+// 	folderSettings.close();
+// }
 
 /**
  * @param {*} fov	The larger of the camera's horizontal and vertical FOV, in degrees
