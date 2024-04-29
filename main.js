@@ -23,24 +23,32 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 let name = 'SpiralFresnelFrenzy';
 
 let deltaPhi = 0.0;	// angle by which components are rotated relative to each other (in radians)
-let deltaZ = 0.0001;
+let deltaZ = 0.00001;
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
 let aspectRatioVideoFeedE = 4.0/3.0;
 let renderer;
 let videoFeedU, videoFeedE;	// feeds from user/environment-facing cameras
+let videoFeedUTexture, videoFeedETexture;
+let textureTIM, textureEarthrise, textureAldrin, texturePillars, textureLunch, textureHalfDome, textureBlueMarble;
+let aspectRatioTIM, aspectRatioEarthrise, aspectRatioAldrin, aspectRatioPillars, aspectRatioLunch, aspectRatioHalfDome, aspectRatioBlueMarble;
+let backgroundColourTIM, backgroundColourEarthrise, backgroundColourAldrin, backgroundColourPillars, backgroundColourLunch, backgroundColourHalfDome, backgroundColourBlueMarble;
 let camera;
 let controls;
 let raytracingSphere;
 let raytracingSphereShaderMaterial;
+
+// the background image
+let background = 0;
+let fovBackground = 68;
 	
 // Nokia HR20, according to https://www.camerafv5.com/devices/manufacturers/hmd_global/nokia_xr20_ttg_0/
 let fovVideoFeedU = 67.3;	// (user-facing) camera
 let fovVideoFeedE = 68.3;	// (environment-facing) camera
 let fovScreen = 68;
 
-let cameraLensDistance = 10.0;
+let cameraLensDistance = 4.0;
 let raytracingSphereRadius = 20.0;
 
 // camera with wide aperture
@@ -101,6 +109,8 @@ function init() {
 	// document.getElementById('livePhoto').appendChild( renderer.domElement );
 
 	createVideoFeeds();
+
+	loadBackgroundImages();
 
 	addRaytracingSphere();
 
@@ -250,8 +260,8 @@ function animate() {
 // }
 
 function updateUniforms() {
-	raytracingSphereShaderMaterial.uniforms.phi1.value = -0.5*deltaPhi;
-	raytracingSphereShaderMaterial.uniforms.phi2.value = +0.5*deltaPhi;
+	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaPhi;
+	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaPhi;	// +0.5*deltaPhi;
 
 	// arrange them symmetrically around z=0
 	raytracingSphereShaderMaterial.uniforms.z1.value = +0.5*deltaZ;
@@ -262,6 +272,58 @@ function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.nHalf.value = Math.log(0.5*(1. + Math.exp(b2pi)))/b2pi;
 
 	raytracingSphereShaderMaterial.uniforms.equivalentLensF.value = calculateEquivalentLensF();
+
+	let aspectRatioBackground;
+	switch(background) {
+	case 0:	// device camera(s)
+		raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = videoFeedETexture;
+		aspectRatioBackground = aspectRatioVideoFeedE;
+		raytracingSphereShaderMaterial.uniforms.backgroundColour.value = new THREE.Vector4(0, 0, 0, 1);	// black
+		break;
+	case 1:	// TIM	// Earthrise
+		raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = textureTIM;	// Earthrise;
+		aspectRatioBackground = aspectRatioTIM;	// Earthrise;
+		raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourTIM;	// Earthrise;
+		break;
+	case 2:	// Aldrin
+		raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = textureAldrin;
+		aspectRatioBackground = aspectRatioAldrin;
+		raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourAldrin;
+		break;
+	// case 3:	// pillars of creation
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = texturePillars;
+	// 	aspectRatioBackground = aspectRatioPillars;	
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourPillars;
+	// 	break;
+	// case 4:	// lunch atop a skyscraper
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = textureLunch;
+	// 	aspectRatioBackground = aspectRatioLunch;
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourLunch;
+	// 	break;
+	case 3:	// Half Dome
+		raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = textureHalfDome;
+		aspectRatioBackground = aspectRatioHalfDome;
+		raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourHalfDome;
+	// 	break;
+	// case 6:	// Blue marble
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundTexture.value = textureBlueMarble;
+	// 	aspectRatioBackground = aspectRatioBlueMarble;
+	// 	raytracingSphereShaderMaterial.uniforms.backgroundColour.value = backgroundColourBlueMarble;
+	}
+
+	// the tangents for the environment-facing camera video feed
+	let tanHalfFovHBackground, tanHalfFovVBackground;
+	if(aspectRatioBackground > 1.0) {
+		// horizontal orientation
+		tanHalfFovHBackground = Math.tan(0.5*fovBackground*Math.PI/180.0);
+		tanHalfFovVBackground = Math.tan(0.5*fovBackground*Math.PI/180.0)/aspectRatioBackground;
+	} else {
+		// vertical orientation
+		tanHalfFovHBackground = Math.tan(0.5*fovBackground*Math.PI/180.0)*aspectRatioBackground;
+		tanHalfFovVBackground = Math.tan(0.5*fovBackground*Math.PI/180.0);
+	}
+	raytracingSphereShaderMaterial.uniforms.halfWidthBackground.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovHBackground;
+	raytracingSphereShaderMaterial.uniforms.halfHeightBackground.value = raytracingSphereShaderMaterial.uniforms.videoDistance.value*tanHalfFovVBackground;
 
 
 	// the tangents for the environment-facing camera video feed
@@ -314,7 +376,7 @@ function updateUniforms() {
 	apertureBasisVector2.crossVectors(viewDirection, apertureBasisVector1).normalize();
 
 	let cameraFeedCentre = new THREE.Vector3(0, 0, 0);
-	// cameraFeedCentre.copy(camera.position);
+	cameraFeedCentre.copy(camera.position);
 	cameraFeedCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
 	// postStatus(`cameraFeedCentre=(${cameraFeedCentre.x}, ${cameraFeedCentre.y}, ${cameraFeedCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
@@ -448,11 +510,45 @@ function getCylindricalLensSpiralTypeString() {
 			return "Hyperbolic <i>r</i> = 1/(<i>b&phi;</i>)";
 	}
 }
+  
+function loadBackgroundImages() {
+	const textureLoader = new THREE.TextureLoader();
+	// textureLoader.crossOrigin = "Anonymous";
+
+	textureTIM = textureLoader.load('Dr_TIM.jpg');
+	aspectRatioTIM = 4000/1800;
+	backgroundColourTIM = new THREE.Vector4(0.75, 0.62, 0.37, 1);
+
+	// textureEarthrise = textureLoader.load('NASA-Apollo8-Dec24-Earthrise.jpeg');	// https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg -- public domain
+	// aspectRatioEarthrise = 1.0;
+	// backgroundColourEarthrise = new THREE.Vector4(0, 0, 0, 1);
+
+	textureAldrin = textureLoader.load('Aldrin_Apollo_11_modified.jpeg');	// https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg -- public domain
+	aspectRatioAldrin = 1.0;
+	backgroundColourAldrin = new THREE.Vector4(0, 0, 0, 1);
+
+	// texturePillars = textureLoader.load('Pillars_2014_HST_denoise_0.6_12.jpg');	// https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg -- public domain
+	// // texturePillars = textureLoader.load('Eagle_nebula_pillars.jpeg');
+	// aspectRatioPillars = 2434/2400;
+	// backgroundColourPillars = new THREE.Vector4(0, 0, 0, 1);
+
+	// textureLunch = textureLoader.load('Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets_cropped.jpeg');	// https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg -- public domain
+	// aspectRatioLunch = 2560/1680;	// 2012;
+	// backgroundColourLunch = new THREE.Vector4(0.73, 0.73, 0.73, 1);
+
+	textureHalfDome = textureLoader.load('HalfDome_cropped.jpeg');	// private photo
+	aspectRatioHalfDome = 1127/923;	// 1532/1111;
+	backgroundColourHalfDome = new THREE.Vector4(0.76, 0.82, 0.92, 1);
+
+	// textureBlueMarble = textureLoader.load('The_Blue_Marble_(remastered).jpeg');	// https://en.wikipedia.org/wiki/The_Blue_Marble#/media/File:The_Blue_Marble_(remastered).jpg
+	// aspectRatioBlueMarble = 2048/2048;
+	// backgroundColourBlueMarble = new THREE.Vector4(0, 0, 0, 1);
+}
 
 /** create raytracing phere */
 function addRaytracingSphere() {
-	const videoFeedUTexture = new THREE.VideoTexture( videoFeedU );
-	const videoFeedETexture = new THREE.VideoTexture( videoFeedE );
+	videoFeedUTexture = new THREE.VideoTexture( videoFeedU );
+	videoFeedETexture = new THREE.VideoTexture( videoFeedE );
 	videoFeedUTexture.colorSpace = THREE.SRGBColorSpace;
 	videoFeedETexture.colorSpace = THREE.SRGBColorSpace;
 
@@ -492,7 +588,7 @@ function addRaytracingSphere() {
 			visible2: { value: true },
 			z2: { value: 0.0 },
 			phi2: { value: 0 },	// angle by which component 2 is rotated around the z axis, in radians
-			f1: { value: 0.1 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+			f1: { value: 0.05 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 			b: { value: 0.01 },	// winding parameter of the spiral
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
@@ -501,11 +597,15 @@ function addRaytracingSphere() {
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
 			videoFeedETexture: { value: videoFeedETexture }, 
+			backgroundTexture: { value: textureEarthrise },
+			backgroundColour: { value: new THREE.Vector4(0, 0, 0, 1) },
 			halfWidthU: { value: 1.0 },
 			halfHeightU: { value: 1.0 },
 			halfWidthE: { value: 1.0 },
 			halfHeightE: { value: 1.0 },
-			videoDistance: { value: 10.0 },	// distance of the image of the video feed from the origin
+			halfWidthBackground: { value: 1.0 },
+			halfHeightBackground: { value: 1.0 },
+			videoDistance: { value: 1e10 },	// distance of the image of the video feed from the origin
 			focusDistance: { value: 10.0 },
 			apertureXHat: { value: new THREE.Vector3(1, 0, 0) },
 			apertureYHat: { value: new THREE.Vector3(0, 1, 0) },
@@ -560,6 +660,12 @@ function addRaytracingSphere() {
 			uniform sampler2D videoFeedETexture;
 			uniform float halfWidthE;
 			uniform float halfHeightE;
+
+			// background
+			uniform sampler2D backgroundTexture;
+			uniform vec4 backgroundColour;
+			uniform float halfWidthBackground;
+			uniform float halfHeightBackground;
 
 			// the camera's wide aperture
 			uniform float videoDistance;
@@ -798,7 +904,7 @@ function addRaytracingSphere() {
 			// is in the ray's "forward" direction;
 			// p becomes the point where the ray intersects the plane;
 			// isForward is set to true or false depending on whether the intersection point is forwards or backwards along the ray
-			void propagateForwardToVideoFeedPlane(
+			void propagateForwardToBackgroundPlane(
 				inout vec3 p, 
 				vec3 d, 
 				inout bool isForward
@@ -810,13 +916,13 @@ function addRaytracingSphere() {
 				float dV = dot(d, viewDirection);
 
 				// is the intersection with the plane in the ray's "forward" direction?
-				isForward = true; (dV*deltaV > 0.0);
+				isForward = true;	// (dV*deltaV > 0.0);
 
 				// if the intersection is in the forward direction, advance the ray to the plane
 				if(isForward) p += d/dV*deltaV;	// set p to the intersection point with the plane
 			}
 
-			vec4 getColorOfVideoFeed(
+			vec4 getColorOfBackground(
 				inout vec3 p, 
 				vec3 d, 
 				vec4 b,
@@ -826,7 +932,7 @@ function addRaytracingSphere() {
 				vec4 backgroundColor
 			) {
 				bool isForward;
-				propagateForwardToVideoFeedPlane(p, d, isForward);
+				propagateForwardToBackgroundPlane(p, d, isForward);
 
 				// is the intersection in the ray's forward direction?
 				if(isForward) {
@@ -840,7 +946,7 @@ function addRaytracingSphere() {
 						// the ray doesn't intersect the image
 						return backgroundColor;
 				}
-				return vec4(0, 1, 0, 1);	// green
+				return backgroundColor;	// vec4(0, 1, 0, 1);	// green
 			}
 
 			// propagate the ray to the plane of the video feed, which is a z-distance <videoDistance> away,
@@ -900,7 +1006,9 @@ function addRaytracingSphere() {
 							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
 							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
 						}
-						if(keepVideoFeedForward) color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
+						if(keepVideoFeedForward) 
+							color = getColorOfBackground(p, d, b, backgroundTexture, halfWidthBackground, halfHeightBackground, backgroundColour);
+							// color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
 						else color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
 					} else {
 						// the ray is travelling "backwards", in the (+z) direction;
@@ -910,7 +1018,9 @@ function addRaytracingSphere() {
 							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
 							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
 						}
-						if(keepVideoFeedForward) color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
+						if(keepVideoFeedForward) 
+							color = getColorOfBackground(p, d, b, backgroundTexture, halfWidthBackground, halfHeightBackground, backgroundColour);
+							// color = getColorOfVideoFeed(p, d, b, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
 						else color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));
 					}
 		
@@ -1051,11 +1161,12 @@ function createGUI() {
 		'No of rays': noOfRays,
 		'Env.-facing cam. (&deg;)': fovVideoFeedE,
 		'User-facing cam. (&deg;)': fovVideoFeedU,
-		'tan<sup>-1</sup>(video dist.)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
+		'tan<sup>-1</sup>(distance)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
 		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
-		'Point (virtual) cam. forward (in -<b>z</b> direction)': pointForward,
+		'Image': background,
+		'Point forward (in -<b>z</b> direction)': pointForward,
 		'Show/hide info': toggleInfoVisibility,
-		'Restart video streams': function() { 
+		'Restart camera video': function() { 
 			recreateVideoFeeds(); 
 			postStatus("Restarting video stream");
 		}
@@ -1074,11 +1185,29 @@ function createGUI() {
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	folderComponents.add( params, '&Delta;<i>z</i>', 0.00001, 0.1).onChange( (dz) => { deltaZ = dz; } );
+	folderComponents.add( params, '&Delta;<i>z</i>', 0.00001, 0.01).onChange( (dz) => { deltaZ = dz; } );
 	folderComponents.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
 	folderComponents.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
 	folderComponents.add( params, 'Radius', 0.1, 10 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
 	
+	const folderBackground = gui.addFolder( 'Background' );
+	folderBackground.add( params, 'Image', 
+	{ 
+		'Camera video': 0, 
+		'Dr TIM': 1,
+		'Buzz Aldrin': 2,
+		// 'Pillars of creation': 3,
+		// 'Lunch atop a skyscraper': 4,
+		'Descent from Half Dome': 3
+		// 'Blue marble': 6
+	} ).onChange( (b) => { background = b; });
+	folderBackground.add( params, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
+	folderBackground.add( params, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
+	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
+	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
+	folderBackground.add( params, 'Restart camera video');
+	folderBackground.close();
+
 	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
 	folderVirtualCamera.add( params, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
 	folderVirtualCamera.add( params, 'Aperture radius', 0.0, 1.0).onChange( (r) => { apertureRadius = r; } );
@@ -1088,22 +1217,15 @@ function createGUI() {
 		0.5*Math.PI
 	).onChange( (a) => { focusDistance = Math.tan(a); } );
 	folderVirtualCamera.add( params, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
+	folderVirtualCamera.add( params, 'Point forward (in -<b>z</b> direction)' );
 	folderVirtualCamera.close();
 
-	const folderDevice = gui.addFolder( 'Device cameras horiz. FOV' );
-	folderDevice.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
-	folderDevice.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
-	folderDevice.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
-	folderDevice.close();
-
-	const folderSettings = gui.addFolder( 'Other controls' );
-	folderSettings.add( params, 'tan<sup>-1</sup>(video dist.)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
-	folderSettings.add( params, 'Lenslet type', { 'Ideal thin': true, 'Phase hologram': false } ).onChange( (t) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = t; });
-	// folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
-	folderSettings.add( params, 'Point (virtual) cam. forward (in -<b>z</b> direction)');
-	folderSettings.add( params, 'Show/hide info');
-	folderSettings.add( params, 'Restart video streams');
-	folderSettings.close();
+	// const folderSettings = gui.addFolder( 'Other controls' );
+	// // folderSettings.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
+	// // folderSettings.add( params, 'Lenslet type', { 'Ideal thin': true, 'Phase hologram': false } ).onChange( (t) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = t; });
+	// // folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
+	// folderSettings.add( params, 'Show/hide info');
+	// folderSettings.close();
 }
 
 // // see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
@@ -1402,6 +1524,16 @@ function postStatus(text) {
 	setTimeout( () => { if(new Date().getTime() - statusTime > 2999) status.innerHTML = '&nbsp;'+name+', University of Glasgow, <a href="https://github.com/jkcuk/'+name+'">https://github.com/jkcuk/'+name+'</a>' }, 3000);
 }
 
+function backgroundToString() {
+	switch (background) { 
+	case 0: return 'Camera video';
+	case 1: return 'Dr TIM';
+	case 2: return 'Buzz Aldrin';
+	case 3: return 'Descent from Half Dome';
+	default: return 'Undefined';
+	}
+}
+
 function getInfoString() {
 	return `Spiral Fresnel lens<br>\n` +
 		`&nbsp;&nbsp;Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
@@ -1413,21 +1545,29 @@ function getInfoString() {
 		`&nbsp;&nbsp;&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
 		'&nbsp;&nbsp;Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
 		`&nbsp;&nbsp;Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>\n` +	// radius of the Fresnel lens
-		`<br>\nEquivalent lens<br>\n` +
+		`<br>Equivalent lens<br>\n` +
 		`&nbsp;&nbsp;Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>\n` +
 		`&nbsp;&nbsp;Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>\n` +
 		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>\n" +
-		'<br>\nVideo stream(s)<br>\n' +
-		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>\n` +	// (user-facing) camera
-		`&nbsp;&nbsp;Horizontal fields of view (when seen from the origin)<br>\n` +
-		`&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>\n` +	// (user-facing) camera
-		`&nbsp;&nbsp;&nbsp;&nbsp;Environment-facing camera = ${fovVideoFeedE.toPrecision(4)}&deg;<br>\n` +	// (environment-facing) camera
-		`<br>\nVirtual camera<br>\n` +
+		'<br>Background<br>\n' +
+		`&nbsp;&nbsp;Image = ` + backgroundToString() + `<br>\n` +
+ 		`&nbsp;&nbsp;Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>\n` +	// (user-facing) camera
+		`&nbsp;&nbsp;Horizontal field of view = ${fovBackground.toPrecision(4)}&deg;<br>\n` +
+		// `&nbsp;&nbsp;&nbsp;&nbsp;User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>\n` +	// (user-facing) camera
+		// `&nbsp;&nbsp;&nbsp;&nbsp;Environment-facing camera = ${fovVideoFeedE.toPrecision(4)}&deg;<br>\n` +	// (environment-facing) camera
+		`<br>Virtual camera<br>\n` +
 		`&nbsp;&nbsp;Position = (${camera.position.x.toPrecision(4)}, ${camera.position.y.toPrecision(4)}, ${camera.position.z.toPrecision(4)})<br>\n` +
 		`&nbsp;&nbsp;Horiz. FOV = ${fovScreen.toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Aperture radius = ${apertureRadius.toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Focussing distance = ${focusDistance.toPrecision(4)}<br>\n` +
-		`&nbsp;&nbsp;Number of rays = ${noOfRays}`
+		`&nbsp;&nbsp;Number of rays = ${noOfRays}\n` +
+		'<br><br>Background image information<br>\n' +
+		// '&nbsp;&nbsp;Earthrise: <a href="https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg">https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg</a><br>\n' +
+		'&nbsp;&nbsp;"Buzz Aldrin": based on <a href="https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg">https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg</a><br>\n' +
+		// '&nbsp;&nbsp;Pillars of creation: <a href="https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg">https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg</a><br>\n' +
+		// '&nbsp;&nbsp;Lunch atop a skyscraper: <a href="https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg">https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg</a><br>\n' +
+		'&nbsp;&nbsp;"Dr TIM" and "Descent from Half Dome": own work by the authors<br>\n' +
+		'&nbsp;&nbsp;All images used are in the public domain.'
 		;
 		console.log("*");
 }
