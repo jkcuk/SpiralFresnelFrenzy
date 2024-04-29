@@ -771,7 +771,7 @@ function addRaytracingSphere() {
 						lensDeflect(d, pixy, focalLength, idealLens);
 
 						// lower the brightness factor, giving the light a blue tinge
-						b *= vec4(0.96, 0.96, 0.99, 1);
+						b *= vec4(0.9, 0.9, 0.99, 1);
 					} 
 				}
 			}
@@ -878,7 +878,7 @@ function addRaytracingSphere() {
 						d = vec3(dxy, sign(d.z)*sqrt(1.0 - dot(dxy, dxy)));						
 
 						// lower the brightness factor, giving the light a slightly blue tinge
-						b *= vec4(0.96, 0.96, 0.99, 1);
+						b *= vec4(0.9, 0.9, 0.99, 1);
 					} 
 				}
 			}
