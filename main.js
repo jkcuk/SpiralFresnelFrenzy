@@ -516,7 +516,7 @@ function loadBackgroundImages() {
 	// textureLoader.crossOrigin = "Anonymous";
 
 	textureTIM = textureLoader.load('Dr_TIM_cropped.jpg');
-	aspectRatioTIM = 3978/1794;
+	aspectRatioTIM = 3972/1787;
 	backgroundColourTIM = new THREE.Vector4(0.75, 0.62, 0.37, 1);
 
 	// textureEarthrise = textureLoader.load('NASA-Apollo8-Dec24-Earthrise.jpeg');	// https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg -- public domain
@@ -1133,7 +1133,7 @@ function createGUI() {
 		{ 
 			'Logarithmic': 0, 
 			'Archimedean': 1, 
-			'Hyperb. <i>R</i>=1/(-<i>b&phi;</i>)': 2, 
+			'Hyperbolic': 2, 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
