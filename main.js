@@ -515,8 +515,8 @@ function loadBackgroundImages() {
 	const textureLoader = new THREE.TextureLoader();
 	// textureLoader.crossOrigin = "Anonymous";
 
-	textureTIM = textureLoader.load('Dr_TIM.jpg');
-	aspectRatioTIM = 4000/1800;
+	textureTIM = textureLoader.load('Dr_TIM_cropped.jpg');
+	aspectRatioTIM = 3978/1794;
 	backgroundColourTIM = new THREE.Vector4(0.75, 0.62, 0.37, 1);
 
 	// textureEarthrise = textureLoader.load('NASA-Apollo8-Dec24-Earthrise.jpeg');	// https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg -- public domain
