@@ -507,7 +507,7 @@ function getCylindricalLensSpiralTypeString() {
 			return "Archimedean";
 		case 2:
 		default:
-			return "Hyperbolic <i>r</i> = 1/(<i>b&phi;</i>)";
+			return "Hyperbolic <i>r</i> = 1/(-<i>b&phi;</i>)";
 	}
 }
   
@@ -580,8 +580,8 @@ function addRaytracingSphere() {
 		side: THREE.DoubleSide,
 		// wireframe: true,
 		uniforms: {
-			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(b phi)
-			radius: { value: 5.0 },	// radius of the Fresnel lens
+			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(-b phi)
+			radius: { value: 1.0 },	// radius of the Fresnel lens
 			visible1: { value: true },
 			z1: { value: 0.0 },
 			phi1: { value: 0 },	// angle by which component 1 is rotated around the z axis, in radians
@@ -784,7 +784,7 @@ function addRaytracingSphere() {
 					// return floor(((r - b*psi)/b2pi) + 0.5);
 					return floor(0.5 + (r - b*psi) / b2pi);
 				case 2:	// hyperbolic
-					return floor(0.5 + (1.0/(r*b) - psi)/(2.0*PI));
+					return floor(0.5 + (-1.0/(r*b) - psi)/(2.0*PI));
 				case 0:	// LOGARITHMIC
 				default:
 					return floor(((log(r) - b*psi)/b2pi) + 0.5);
@@ -795,7 +795,7 @@ function addRaytracingSphere() {
 			// The spiral is rotated by deltaPhi.
 			// r2 is the square of r, which we need to calculate r and which we have already calculated, so we might
 			// as well pass it.
-			vec2 calculateDerivatives(float x, float y, float r2, float f1) {
+			vec2 calculatePhaseGradient(float x, float y, float r2, float f1) {
 				// calculate r and psi, the polar coordinates
 				float r = sqrt(r2);
 				float psi = atan(y, x);	// azimuthal angle, bound to the range [-pi, pi]
@@ -818,11 +818,11 @@ function addRaytracingSphere() {
 							-c*b*(-3.0*b*x*phi + r*(x+2.0*y*phi))
 						);
 					}
-				case 2:	// hyperbolic r = 1/(b phi)
-					c = (b*r*phi - 1.0) / (2.0*b*f1*r2*phi*phi);
+				case 2:	// hyperbolic r = 1/(-b phi)
+					c = (b*r*phi + 1.0) / (2.0*b*f1*r2*phi*phi);
 					return vec2(
-						+c*(y + b*r*y*phi - 2.0*b*r*x*phi*phi),
-						-c*(x + b*r*x*phi + 2.0*b*r*y*phi*phi)
+						c*( y - b*r*y*phi + 2.0*b*r*x*phi*phi),
+						c*(-x + b*r*x*phi + 2.0*b*r*y*phi*phi)
 					);
 				case 0:	// LOGARITHMIC
 				default:
@@ -867,11 +867,11 @@ function addRaytracingSphere() {
 
 						// normalise d
 						vec3 dN = d/length(d);
-						// calculate the phase derivatives, which define the change in the transverse components
+						// calculate the phase gradient, which defines the change in the transverse components
 						vec2 pRotated = rotate(p.xy, deltaPhi);
-						vec2 derivs = rotate(calculateDerivatives(pRotated.x, pRotated.y, r2, f1), -deltaPhi);
+						vec2 phaseGradient = rotate(calculatePhaseGradient(pRotated.x, pRotated.y, r2, f1), -deltaPhi);
 						// transverse components of the outgoing light-ray direction
-						vec2 dxy = dN.xy + derivs;
+						vec2 dxy = dN.xy + phaseGradient;
 		
 						// from the transverse direction, construct a 3D vector by setting the z component such that the length
 						// of the vector is 1
@@ -900,7 +900,7 @@ function addRaytracingSphere() {
 				// b *= vec4(0.9, 0.9, 0.99, 1);
 			}
 
-			// propagate the ray starting at position p and with direction d to the plane containing the video feed, providing that plane
+			// propagate the ray starting at position p and with direction d to the plane containing the background, providing that plane
 			// is in the ray's "forward" direction;
 			// p becomes the point where the ray intersects the plane;
 			// isForward is set to true or false depending on whether the intersection point is forwards or backwards along the ray
@@ -1030,55 +1030,6 @@ function addRaytracingSphere() {
 					
 				gl_FragColor /= float(noOfRays);
 			}
-
-			// void main() {
-			// 	// first calculate the point this pixel is focussed on
-			// 	vec3 dF = intersectionPoint - cameraPosition;
-			// 	vec3 focusPosition = cameraPosition + focusDistance/abs(dF.z)*dF;
-
-			// 	// trace <noOfRays> rays
-			// 	gl_FragColor = vec4(0, 0, 0, 0);
-			// 	vec4 color;
-			// 	for(int i=0; i<noOfRays; i++) {
-			// 		// the current ray start position, a random point on the camera's circular aperture
-			// 		vec3 p = cameraPosition + apertureRadius*randomNumbersX[i]*apertureXHat + apertureRadius*randomNumbersY[i]*apertureYHat;
-	
-			// 		// first calculate the current light-ray direction:
-			// 		// the ray first passes through focusPosition and then p,
-			// 		// so the "backwards" ray direction from the camera to the intersection point is
-			// 		//   d = focusPosition - p
-			// 		vec3 d = focusPosition - p;
-			// 		d = dF.z/d.z*d;
-	
-			// 		// current brightness factor; this will multiply the colour at the end
-			// 		vec4 b = vec4(1.0, 1.0, 1.0, 1.0);
-	
-			// 		if(d.z < 0.0) {
-			// 			// the ray is travelling "forwards", in the (-z) direction;
-			// 			if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
-			// 			else {
-			// 				// pass first through component 1, then component 2, then to environment-facing video feed
-			// 				if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
-			// 				if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
-			// 			}
-			// 			color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));	// white
-			// 		} else {
-			// 			// the ray is travelling "backwards", in the (+z) direction;
-			// 			if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
-			// 			else {
-			// 				// pass first through component 2, then component 1, then to user-facing video feed
-			// 				if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
-			// 				if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
-			// 			}
-			// 			color = getColorOfVideoFeed(p, d, b, videoDistance, videoFeedUTexture, halfWidthU, halfHeightU, vec4(1, 0, 0, 1.0));	// white
-			// 		}
-		
-			// 		// finally, multiply by the brightness factor and add to gl_FragColor
-			// 		gl_FragColor += b*color;
-			// 	}
-					
-			// 	gl_FragColor /= float(noOfRays);
-			// }
 		`
 	});
 	raytracingSphere = new THREE.Mesh( geometry, raytracingSphereShaderMaterial ); 
@@ -1087,14 +1038,15 @@ function addRaytracingSphere() {
 
 // return the focal length of the Fresnel lens
 function calculateEquivalentLensF() {
-	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
-		case 0:	// logarithmic
-		case 1:	// Archimedean
-			return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
-		case 2:	// Hyperbolic
-		default:
-			return -raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
-	}
+	return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
+	// switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
+	// 	case 0:	// logarithmic
+	// 	case 1:	// Archimedean
+	// 		return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
+	// 	case 2:	// Hyperbolic
+	// 	default:
+	// 		return -raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
+	// }
 }
 
 function addEventListenersEtc() {
@@ -1181,7 +1133,7 @@ function createGUI() {
 		{ 
 			'Logarithmic': 0, 
 			'Archimedean': 1, 
-			'Hyperb. <i>R</i>=1/(<i>b&phi;</i>)': 2, 
+			'Hyperb. <i>R</i>=1/(-<i>b&phi;</i>)': 2, 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
