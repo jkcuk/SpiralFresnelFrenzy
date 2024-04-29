@@ -22,7 +22,7 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 
 let name = 'SpiralFresnelFrenzy';
 
-let deltaPhi = 0.0;	// angle by which components are rotated relative to each other (in radians)
+let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
 
 let scene;
@@ -48,12 +48,12 @@ let fovVideoFeedU = 67.3;	// (user-facing) camera
 let fovVideoFeedE = 68.3;	// (environment-facing) camera
 let fovScreen = 68;
 
-let cameraLensDistance = 4.0;
+let cameraLensDistance = 3.0;
 let raytracingSphereRadius = 20.0;
 
 // camera with wide aperture
 let apertureRadius = 0.0;
-let focusDistance = 1e8;
+let focusDistance = 3e8;	// 1 light second
 let noOfRays = 1;
 
 // the status text area
@@ -605,7 +605,7 @@ function addRaytracingSphere() {
 			halfHeightE: { value: 1.0 },
 			halfWidthBackground: { value: 1.0 },
 			halfHeightBackground: { value: 1.0 },
-			videoDistance: { value: 1e10 },	// distance of the image of the video feed from the origin
+			videoDistance: { value: 3e8 },	// distance of the image of the video feed from the origin
 			focusDistance: { value: 10.0 },
 			apertureXHat: { value: new THREE.Vector3(1, 0, 0) },
 			apertureYHat: { value: new THREE.Vector3(0, 1, 0) },
