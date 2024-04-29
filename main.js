@@ -1490,7 +1490,7 @@ function getInfoString() {
 	return `Spiral Fresnel lens<br>\n` +
 		`&nbsp;&nbsp;Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
 		`&nbsp;&nbsp;Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
-		`&nbsp;&nbsp;Rotation angle, &Delta;&phi; = ${deltaPhi.toPrecision(4)}&deg;<br>\n` +
+		`&nbsp;&nbsp;Rotation angle, &Delta;&phi; = ${(deltaPhi*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
 		'&nbsp;&nbsp;Spiral type = ' + getCylindricalLensSpiralTypeString() + '<br>\n' +
 		`&nbsp;&nbsp;Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
 		`&nbsp;&nbsp;<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
