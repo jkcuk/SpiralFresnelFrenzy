@@ -537,7 +537,7 @@ function loadBackgroundImages() {
 	// backgroundColourLunch = new THREE.Vector4(0.73, 0.73, 0.73, 1);
 
 	textureHalfDome = textureLoader.load('HalfDome_cropped.jpeg');	// private photo
-	aspectRatioHalfDome = 1127/923;	// 1532/1111;
+	aspectRatioHalfDome = 1062/918;	// 1532/1111;
 	backgroundColourHalfDome = new THREE.Vector4(0.76, 0.82, 0.92, 1);
 
 	// textureBlueMarble = textureLoader.load('The_Blue_Marble_(remastered).jpeg');	// https://en.wikipedia.org/wiki/The_Blue_Marble#/media/File:The_Blue_Marble_(remastered).jpg
