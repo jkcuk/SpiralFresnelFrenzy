@@ -447,7 +447,7 @@ function updateUniforms() {
 		cp2bcPrime.addScaledVector(camera.position, -1);
 	
 		focusDistance = cp2bcPrime.dot(viewDirection);
-		postStatus(`focusDistance = ${focusDistance}`);
+		// postStatus(`focusDistance = ${focusDistance}`);
 		atanFocusDistance = Math.atan(focusDistance);
 	} else {
 		focusDistance = Math.tan(atanFocusDistance);
