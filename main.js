@@ -434,7 +434,9 @@ function updateUniforms() {
 		// let i = o*equivalentLensF/(o-equivalentLensF);
 
 		// calculate the magnification of the image of the background centre, which is -(image distance)/(object distance)
-		let m = equivalentLensF/(equivalentLensF - o);
+		let m;
+		if(equivalentLensF === Infinity) m = 1;
+		else m = equivalentLensF/(equivalentLensF - o);
 
 		// calculate the image of the background centre, making good use of the fact that the principal point of the lens is at the origin
 		let backgroundCentreImage = backgroundCentre.multiplyScalar(m);
