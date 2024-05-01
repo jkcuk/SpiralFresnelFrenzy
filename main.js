@@ -53,8 +53,9 @@ let raytracingSphereRadius = 20.0;
 
 // camera with wide aperture
 let apertureRadius = 0.0;
-let focusDistance = 3e8;	// 1 light second
+let atanFocusDistance = Math.atan(3e8);	// 1 light second
 let noOfRays = 1;
+let autofocus = false;
 
 // the status text area
 let status = document.createElement('div');
@@ -64,6 +65,10 @@ let statusTime;	// the time the last status was posted
 let info = document.createElement('div');
 
 let gui;
+let GUIParams;
+let focusDistanceControl;
+// let folderComponents, folderBackground, folderVirtualCamera;
+
 
 // let counter = 0;
 
@@ -121,6 +126,7 @@ function init() {
 	addOrbitControls();
 
 	// the controls menu
+	// refreshGUI();
 	createGUI();
 
 	createInfo();
@@ -271,7 +277,8 @@ function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.b2pi.value = b2pi;
 	raytracingSphereShaderMaterial.uniforms.nHalf.value = Math.log(0.5*(1. + Math.exp(b2pi)))/b2pi;
 
-	raytracingSphereShaderMaterial.uniforms.equivalentLensF.value = calculateEquivalentLensF();
+	let equivalentLensF = calculateEquivalentLensF();
+	raytracingSphereShaderMaterial.uniforms.equivalentLensF.value = equivalentLensF;
 
 	let aspectRatioBackground;
 	switch(background) {
@@ -360,7 +367,9 @@ function updateUniforms() {
 	let viewDirection = new THREE.Vector3();
 	let apertureBasisVector1 = new THREE.Vector3();
 	let apertureBasisVector2 = new THREE.Vector3();
-	camera.getWorldDirection(viewDirection).normalize();
+	camera.getWorldDirection(viewDirection);
+	viewDirection.normalize();
+	// postStatus(`viewDirection.lengthSq() = ${viewDirection.lengthSq()}`);
 	// if(counter < 10) console.log(`viewDirection = (${viewDirection.x.toPrecision(2)}, ${viewDirection.y.toPrecision(2)}, ${viewDirection.z.toPrecision(2)})`);
 
 	if((viewDirection.x == 0.0) && (viewDirection.y == 0.0)) {
@@ -375,10 +384,10 @@ function updateUniforms() {
 	// apertureBasisVector1 = new THREE.Vector3(1, 0, 0);
 	apertureBasisVector2.crossVectors(viewDirection, apertureBasisVector1).normalize();
 
-	let cameraFeedCentre = new THREE.Vector3(0, 0, 0);
-	cameraFeedCentre.copy(camera.position);
-	cameraFeedCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
-	// postStatus(`cameraFeedCentre=(${cameraFeedCentre.x}, ${cameraFeedCentre.y}, ${cameraFeedCentre.z})`);
+	let backgroundCentre = new THREE.Vector3(0, 0, 0);
+	backgroundCentre.copy(camera.position);
+	backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
+	// postStatus(`backgroundCentre=(${backgroundCentre.x}, ${backgroundCentre.y}, ${backgroundCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
 	// apertureBasis2 *= apertureRadius;
 
@@ -404,7 +413,7 @@ function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.apertureXHat.value.copy(apertureBasisVector1);
 	raytracingSphereShaderMaterial.uniforms.apertureYHat.value.copy(apertureBasisVector2);
 	raytracingSphereShaderMaterial.uniforms.viewDirection.value.copy(viewDirection);
-	raytracingSphereShaderMaterial.uniforms.cameraFeedCentre.value.copy(cameraFeedCentre);
+	raytracingSphereShaderMaterial.uniforms.backgroundCentre.value.copy(backgroundCentre);
 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.x = apertureRadius*apertureBasisVector1.x;
 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.y = apertureRadius*apertureBasisVector1.y;
 	// raytracingSphereShaderMaterial.uniforms.apertureXHat.value.z = apertureRadius*apertureBasisVector1.z;
@@ -413,7 +422,39 @@ function updateUniforms() {
 	// raytracingSphereShaderMaterial.uniforms.apertureYHat.value.z = apertureRadius*apertureBasisVector2.z;
 	// raytracingSphereShaderMaterial.uniforms.pointsOnAperture.value = pointsOnAperture;
 	raytracingSphereShaderMaterial.uniforms.apertureRadius.value = apertureRadius;
-	raytracingSphereShaderMaterial.uniforms.focusDistance.value = focusDistance;
+
+	let focusDistance;
+	if(autofocus) {
+		let sign = Math.sign(viewDirection.z);
+
+		// calculate the "object distance" of the z plane containing the background centre
+		let o = sign*backgroundCentre.z;
+
+		// calculate "image distance" of the z plane containing the image of the background centre
+		// let i = o*equivalentLensF/(o-equivalentLensF);
+
+		// calculate the magnification of the image of the background centre, which is -(image distance)/(object distance)
+		let m = equivalentLensF/(equivalentLensF - o);
+
+		// calculate the image of the background centre, making good use of the fact that the principal point of the lens is at the origin
+		let backgroundCentreImage = backgroundCentre.multiplyScalar(m);
+
+		// calculate the focus distance
+		let cp2bcPrime = new THREE.Vector3(0, 0, 0);	// the vector from the camera centre to the image of the background centre
+		cp2bcPrime.copy(backgroundCentreImage);
+		cp2bcPrime.addScaledVector(camera.position, -1);
+	
+		focusDistance = cp2bcPrime.dot(viewDirection);
+		postStatus(`focusDistance = ${focusDistance}`);
+		atanFocusDistance = Math.atan(focusDistance);
+	} else {
+		focusDistance = Math.tan(atanFocusDistance);
+	}
+	if(raytracingSphereShaderMaterial.uniforms.focusDistance.value != focusDistance) {
+		raytracingSphereShaderMaterial.uniforms.focusDistance.value = focusDistance;
+		// GUIParams.'tan<sup>-1</sup>(focus. dist.)'.value = atanFocusDistance;
+		focusDistanceControl.setValue(atanFocusDistance);
+	}
 
 	// (re)create random numbers
 	// let i=0;
@@ -433,116 +474,6 @@ function updateUniforms() {
 	// } while (i < 100);
 	// raytracingSphereShaderMaterial.uniforms.randomNumbersX.value = randomNumbersX;
 	// raytracingSphereShaderMaterial.uniforms.randomNumbersY.value = randomNumbersY;
-}
-
-
-function createVideoFeeds() {
-	// create the video stream for the user-facing camera first, as some devices (such as my iPad), which have both cameras,
-	// but can (for whatever reason) only have a video feed from one at a time, seem to go with the video stream that was
-	// created last, and as the standard view is looking "forward" it is preferable to see the environment-facing camera.
-	videoFeedU = document.getElementById( 'videoFeedU' );
-
-	// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_video_webcam.html
-	if ( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
-		// user-facing camera
-		const constraintsU = { video: { 
-			// 'deviceId': cameraId,	// this could be the device ID selected 
-			width: {ideal: 1280},	// {ideal: 10000}, 
-			// height: {ideal: 10000}, 
-			facingMode: {ideal: 'user'}
-			// aspectRatio: { exact: width / height }
-		} };
-		navigator.mediaDevices.getUserMedia( constraintsU ).then( function ( stream ) {
-			// apply the stream to the video element used in the texture
-			videoFeedU.srcObject = stream;
-			videoFeedU.play();
-
-			videoFeedU.addEventListener("playing", () => {
-				aspectRatioVideoFeedU = videoFeedU.videoWidth / videoFeedU.videoHeight;
-				updateUniforms();
-				postStatus(`User-facing(?) camera resolution ${videoFeedU.videoWidth} &times; ${videoFeedU.videoHeight}`);
-			});
-		} ).catch( function ( error ) {
-			postStatus(`Unable to access user-facing camera/webcam (Error: ${error})`);
-		} );
-	} else {
-		postStatus( 'MediaDevices interface, which is required for video streams from device cameras, not available.' );
-	}
-
-	videoFeedE = document.getElementById( 'videoFeedE' );
-
-	// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_video_webcam.html
-	if ( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
-		// environment-facing camera
-		const constraintsE = { video: { 
-			// 'deviceId': cameraId,	// this could be the device ID selected 
-			width: {ideal: 1280},	// {ideal: 10000}, 
-			// height: {ideal: 10000}, 
-			facingMode: {ideal: 'environment'}
-			// aspectRatio: { exact: width / height }
-		} };
-		navigator.mediaDevices.getUserMedia( constraintsE ).then( function ( stream ) {
-			// apply the stream to the video element used in the texture
-			videoFeedE.srcObject = stream;
-			videoFeedE.play();
-
-			videoFeedE.addEventListener("playing", () => {
-				aspectRatioVideoFeedE = videoFeedE.videoWidth / videoFeedE.videoHeight;
-				updateUniforms();
-				postStatus(`Environment-facing(?) camera resolution ${videoFeedE.videoWidth} &times; ${videoFeedE.videoHeight}`);
-			});
-		} ).catch( function ( error ) {
-			postStatus(`Unable to access environment-facing camera/webcam (Error: ${error})`);
-		} );
-	} else {
-		postStatus( 'MediaDevices interface, which is required for video streams from device cameras, not available.' );
-	}
-}
-
-function getCylindricalLensSpiralTypeString() {
-	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
-		case 0:	
-			return "Logarithmic";
-		case 1: 
-			return "Archimedean";
-		case 2:
-		default:
-			return "Hyperbolic <i>r</i> = 1/(-<i>b&phi;</i>)";
-	}
-}
-  
-function loadBackgroundImages() {
-	const textureLoader = new THREE.TextureLoader();
-	// textureLoader.crossOrigin = "Anonymous";
-
-	textureTIM = textureLoader.load('Dr_TIM_cropped.jpg');
-	aspectRatioTIM = 3972/1787;
-	backgroundColourTIM = new THREE.Vector4(0.75, 0.62, 0.37, 1);
-
-	// textureEarthrise = textureLoader.load('NASA-Apollo8-Dec24-Earthrise.jpeg');	// https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg -- public domain
-	// aspectRatioEarthrise = 1.0;
-	// backgroundColourEarthrise = new THREE.Vector4(0, 0, 0, 1);
-
-	textureAldrin = textureLoader.load('Aldrin_Apollo_11_modified.jpeg');	// https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg -- public domain
-	aspectRatioAldrin = 1.0;
-	backgroundColourAldrin = new THREE.Vector4(0, 0, 0, 1);
-
-	// texturePillars = textureLoader.load('Pillars_2014_HST_denoise_0.6_12.jpg');	// https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg -- public domain
-	// // texturePillars = textureLoader.load('Eagle_nebula_pillars.jpeg');
-	// aspectRatioPillars = 2434/2400;
-	// backgroundColourPillars = new THREE.Vector4(0, 0, 0, 1);
-
-	// textureLunch = textureLoader.load('Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets_cropped.jpeg');	// https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg -- public domain
-	// aspectRatioLunch = 2560/1680;	// 2012;
-	// backgroundColourLunch = new THREE.Vector4(0.73, 0.73, 0.73, 1);
-
-	textureHalfDome = textureLoader.load('HalfDome_cropped.jpeg');	// private photo
-	aspectRatioHalfDome = 1062/918;	// 1532/1111;
-	backgroundColourHalfDome = new THREE.Vector4(0.76, 0.82, 0.92, 1);
-
-	// textureBlueMarble = textureLoader.load('The_Blue_Marble_(remastered).jpeg');	// https://en.wikipedia.org/wiki/The_Blue_Marble#/media/File:The_Blue_Marble_(remastered).jpg
-	// aspectRatioBlueMarble = 2048/2048;
-	// backgroundColourBlueMarble = new THREE.Vector4(0, 0, 0, 1);
 }
 
 /** create raytracing phere */
@@ -614,7 +545,7 @@ function addRaytracingSphere() {
 			randomNumbersY: { value: randomNumbersY },
 			noOfRays: { value: 1 },
 			viewDirection: { value: new THREE.Vector3(0, 0, -1) },
-			cameraFeedCentre: { value: new THREE.Vector3(0, 0, -1) },
+			backgroundCentre: { value: new THREE.Vector3(0, 0, -1) },
 			keepVideoFeedForward: { value: true }
 		},
 		vertexShader: `
@@ -674,7 +605,7 @@ function addRaytracingSphere() {
 			uniform vec3 apertureXHat;
 			uniform vec3 apertureYHat;
 			uniform vec3 viewDirection;
-			uniform vec3 cameraFeedCentre;
+			uniform vec3 backgroundCentre;
 			uniform float apertureRadius;
 			uniform float randomNumbersX[100];
 			uniform float randomNumbersY[100];
@@ -910,7 +841,7 @@ function addRaytracingSphere() {
 				inout bool isForward
 			) {
 				// calculate the distance in the view direction from the ray start position to c
-				float deltaV = dot(cameraFeedCentre-p, viewDirection);
+				float deltaV = dot(backgroundCentre-p, viewDirection);
 
 				// calculate the component in the view direction of the light-ray direction d
 				float dV = dot(d, viewDirection);
@@ -978,8 +909,8 @@ function addRaytracingSphere() {
 
 			void main() {
 				// first calculate the point this pixel is focussed on
-				vec3 dF = intersectionPoint - cameraPosition;
-				vec3 focusPosition = cameraPosition + focusDistance/abs(dF.z)*dF;
+				vec3 v = intersectionPoint - cameraPosition;	// the "pixel view direction", i.e. a vector from the centre of the camera apertuer to the point on the object the shader is currently "shading"
+				vec3 focusPosition = cameraPosition + focusDistance/abs(dot(v, viewDirection))*v;
 
 				// trace <noOfRays> rays
 				gl_FragColor = vec4(0, 0, 0, 0);
@@ -993,7 +924,7 @@ function addRaytracingSphere() {
 					// so the "backwards" ray direction from the camera to the intersection point is
 					//   d = focusPosition - p
 					vec3 d = focusPosition - p;
-					d = dF.z/d.z*d;
+					d = v.z/d.z*d;
 	
 					// current brightness factor; this will multiply the colour at the end
 					vec4 b = vec4(1.0, 1.0, 1.0, 1.0);
@@ -1036,6 +967,141 @@ function addRaytracingSphere() {
 	scene.add( raytracingSphere );
 }
 
+
+// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
+function createGUI() {
+	// const 
+	gui = new GUI();
+	// gui.hide();
+
+	GUIParams = {
+		visible1: raytracingSphereShaderMaterial.uniforms.visible1.value,
+		visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
+		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
+		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
+		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		'&Delta;<i>z</i>': deltaZ,
+		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
+		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
+		'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
+		'Horiz. FOV (&deg;)': fovScreen,
+		'Aperture radius': apertureRadius,
+		'tan<sup>-1</sup>(focus. dist.)': atanFocusDistance,
+		'No of rays': noOfRays,
+		'Env.-facing cam. (&deg;)': fovVideoFeedE,
+		'User-facing cam. (&deg;)': fovVideoFeedU,
+		'tan<sup>-1</sup>(distance)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
+		'Autofocus': autofocus,
+		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
+		'Image': background,
+		'Point forward (in -<b>z</b> direction)': pointForward,
+		'Show/hide info': toggleInfoVisibility,
+		'Restart camera video': function() { 
+			recreateVideoFeeds(); 
+			postStatus("Restarting video stream");
+		}
+	}
+
+	gui.add( GUIParams, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
+
+	const folderComponents = gui.addFolder( 'Optical components' );
+	folderComponents.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
+	folderComponents.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
+	folderComponents.add( GUIParams, 'Spiral type', 
+		{ 
+			'Logarithmic': 0, 
+			'Archimedean': 1, 
+			'Hyperbolic': 2, 
+		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+	folderComponents.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+	folderComponents.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+	folderComponents.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
+	folderComponents.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
+	folderComponents.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+	folderComponents.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
+
+	const folderBackground = gui.addFolder( 'Background' );
+	folderBackground.add( GUIParams, 'Image', 
+	{ 
+		'Camera video': 0, 
+		'Dr TIM': 1,
+		'Buzz Aldrin': 2,
+		// 'Pillars of creation': 3,
+		// 'Lunch atop a skyscraper': 4,
+		'Descent from Half Dome': 3
+		// 'Blue marble': 6
+	} ).name( 'Test' ).onChange( (b) => { background = b; });
+	folderBackground.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
+	folderBackground.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
+	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
+	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
+	folderBackground.add( GUIParams, 'Restart camera video');
+	folderBackground.close();
+
+	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
+	folderVirtualCamera.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
+	folderVirtualCamera.add( GUIParams, 'Aperture radius', 0.0, 1.0, 0.01).onChange( (r) => { apertureRadius = r; } );
+	folderVirtualCamera.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
+	focusDistanceControl = folderVirtualCamera.add( GUIParams, 'tan<sup>-1</sup>(focus. dist.)', 
+		//Math.atan(0.1), 
+		-0.5*Math.PI,
+		0.5*Math.PI,
+		0.001
+	).onChange( (a) => { atanFocusDistance = a; } );
+	// folderVirtualCamera.add( atanFocusDistance, 'atan focus dist', -0.5*Math.PI, +0.5*Math.PI ).listen();
+	folderVirtualCamera.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
+	folderVirtualCamera.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
+	folderVirtualCamera.close();
+
+	// const folderSettings = gui.addFolder( 'Other controls' );
+	// // folderSettings.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
+	// // folderSettings.add( params, 'Lenslet type', { 'Ideal thin': true, 'Phase hologram': false } ).onChange( (t) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = t; });
+	// // folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
+	// folderSettings.add( params, 'Show/hide info');
+	// folderSettings.close();
+}
+
+// function updateGUI() {
+// 	// see https://stackoverflow.com/questions/16166440/refresh-dat-gui-with-new-values
+// 	for (var i = 0; i < Object.keys(gui.__folders).length; i++) {
+// 		var key = Object.keys(gui.__folders)[i];
+// 		for (var j = 0; j < gui.__folders[key].__controllers.length; j++ )
+// 		{
+// 			gui.__folders[key].__controllers[j].updateDisplay();
+// 		}
+// 	}
+// }
+
+// function refreshGUI() {
+// 	let folderComponentsClosed, folderBackgroundClosed, folderVirtualCameraClosed;
+
+// 	// if the gui exits, ...
+// 	if(gui) {
+// 		// ... take note of which folders are currently closed...
+// 		// TODO this is not working
+// 		folderComponentsClosed = folderComponents.closed;
+// 		folderBackgroundClosed = folderBackground.closed;
+// 		folderVirtualCameraClosed = folderVirtualCamera.closed;
+
+// 		postStatus(`folderComponentsClosed=${folderComponentsClosed} folderBackgroundClosed=${folderBackgroundClosed} folderVirtualCameraClosed=${folderVirtualCameraClosed}`);
+// 		// ... before destroying the old GUI
+// 		gui.destroy(); 
+// 	} else {
+// 		folderComponentsClosed = false;
+// 		folderBackgroundClosed = false;
+// 		folderVirtualCameraClosed = true;
+// 	}
+
+// 	// create a new gui...
+// 	createGUI();
+
+// 	// ... making sure the folders are closed again as before
+// 	if(folderComponentsClosed) folderComponents.close();
+// 	if(folderBackgroundClosed) folderBackground.close();
+// 	if(folderVirtualCameraClosed) folderVirtualCamera.close();
+// }
+
 // return the focal length of the Fresnel lens
 function calculateEquivalentLensF() {
 	return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
@@ -1047,6 +1113,116 @@ function calculateEquivalentLensF() {
 	// 	default:
 	// 		return -raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
 	// }
+}
+
+
+function createVideoFeeds() {
+	// create the video stream for the user-facing camera first, as some devices (such as my iPad), which have both cameras,
+	// but can (for whatever reason) only have a video feed from one at a time, seem to go with the video stream that was
+	// created last, and as the standard view is looking "forward" it is preferable to see the environment-facing camera.
+	videoFeedU = document.getElementById( 'videoFeedU' );
+
+	// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_video_webcam.html
+	if ( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
+		// user-facing camera
+		const constraintsU = { video: { 
+			// 'deviceId': cameraId,	// this could be the device ID selected 
+			width: {ideal: 1280},	// {ideal: 10000}, 
+			// height: {ideal: 10000}, 
+			facingMode: {ideal: 'user'}
+			// aspectRatio: { exact: width / height }
+		} };
+		navigator.mediaDevices.getUserMedia( constraintsU ).then( function ( stream ) {
+			// apply the stream to the video element used in the texture
+			videoFeedU.srcObject = stream;
+			videoFeedU.play();
+
+			videoFeedU.addEventListener("playing", () => {
+				aspectRatioVideoFeedU = videoFeedU.videoWidth / videoFeedU.videoHeight;
+				updateUniforms();
+				postStatus(`User-facing(?) camera resolution ${videoFeedU.videoWidth} &times; ${videoFeedU.videoHeight}`);
+			});
+		} ).catch( function ( error ) {
+			postStatus(`Unable to access user-facing camera/webcam (Error: ${error})`);
+		} );
+	} else {
+		postStatus( 'MediaDevices interface, which is required for video streams from device cameras, not available.' );
+	}
+
+	videoFeedE = document.getElementById( 'videoFeedE' );
+
+	// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_materials_video_webcam.html
+	if ( navigator.mediaDevices && navigator.mediaDevices.getUserMedia ) {
+		// environment-facing camera
+		const constraintsE = { video: { 
+			// 'deviceId': cameraId,	// this could be the device ID selected 
+			width: {ideal: 1280},	// {ideal: 10000}, 
+			// height: {ideal: 10000}, 
+			facingMode: {ideal: 'environment'}
+			// aspectRatio: { exact: width / height }
+		} };
+		navigator.mediaDevices.getUserMedia( constraintsE ).then( function ( stream ) {
+			// apply the stream to the video element used in the texture
+			videoFeedE.srcObject = stream;
+			videoFeedE.play();
+
+			videoFeedE.addEventListener("playing", () => {
+				aspectRatioVideoFeedE = videoFeedE.videoWidth / videoFeedE.videoHeight;
+				updateUniforms();
+				postStatus(`Environment-facing(?) camera resolution ${videoFeedE.videoWidth} &times; ${videoFeedE.videoHeight}`);
+			});
+		} ).catch( function ( error ) {
+			postStatus(`Unable to access environment-facing camera/webcam (Error: ${error})`);
+		} );
+	} else {
+		postStatus( 'MediaDevices interface, which is required for video streams from device cameras, not available.' );
+	}
+}
+
+function getCylindricalLensSpiralTypeString() {
+	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
+		case 0:	
+			return "Logarithmic";
+		case 1: 
+			return "Archimedean";
+		case 2:
+		default:
+			return "Hyperbolic <i>r</i> = 1/(-<i>b&phi;</i>)";
+	}
+}
+  
+function loadBackgroundImages() {
+	const textureLoader = new THREE.TextureLoader();
+	// textureLoader.crossOrigin = "Anonymous";
+
+	textureTIM = textureLoader.load('Dr_TIM_cropped.jpg');
+	aspectRatioTIM = 3972/1787;
+	backgroundColourTIM = new THREE.Vector4(0.75, 0.62, 0.37, 1);
+
+	// textureEarthrise = textureLoader.load('NASA-Apollo8-Dec24-Earthrise.jpeg');	// https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg -- public domain
+	// aspectRatioEarthrise = 1.0;
+	// backgroundColourEarthrise = new THREE.Vector4(0, 0, 0, 1);
+
+	textureAldrin = textureLoader.load('Aldrin_Apollo_11_modified.jpeg');	// https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg -- public domain
+	aspectRatioAldrin = 1.0;
+	backgroundColourAldrin = new THREE.Vector4(0, 0, 0, 1);
+
+	// texturePillars = textureLoader.load('Pillars_2014_HST_denoise_0.6_12.jpg');	// https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg -- public domain
+	// // texturePillars = textureLoader.load('Eagle_nebula_pillars.jpeg');
+	// aspectRatioPillars = 2434/2400;
+	// backgroundColourPillars = new THREE.Vector4(0, 0, 0, 1);
+
+	// textureLunch = textureLoader.load('Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets_cropped.jpeg');	// https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg -- public domain
+	// aspectRatioLunch = 2560/1680;	// 2012;
+	// backgroundColourLunch = new THREE.Vector4(0.73, 0.73, 0.73, 1);
+
+	textureHalfDome = textureLoader.load('HalfDome_cropped.jpeg');	// private photo
+	aspectRatioHalfDome = 1062/918;	// 1532/1111;
+	backgroundColourHalfDome = new THREE.Vector4(0.76, 0.82, 0.92, 1);
+
+	// textureBlueMarble = textureLoader.load('The_Blue_Marble_(remastered).jpeg');	// https://en.wikipedia.org/wiki/The_Blue_Marble#/media/File:The_Blue_Marble_(remastered).jpg
+	// aspectRatioBlueMarble = 2048/2048;
+	// backgroundColourBlueMarble = new THREE.Vector4(0, 0, 0, 1);
 }
 
 function addEventListenersEtc() {
@@ -1089,97 +1265,6 @@ function addEventListenersEtc() {
 	document.getElementById('storedPhoto').style.visibility = "hidden";
 	// showingStoredPhoto = false;
 }
-
-// see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
-function createGUI() {
-	// const 
-	gui = new GUI();
-	// gui.hide();
-
-	const params = {
-		'Show component 1': raytracingSphereShaderMaterial.uniforms.visible1.value,
-		'Show component 2': raytracingSphereShaderMaterial.uniforms.visible2.value,
-		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
-		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
-		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
-		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
-		'&Delta;<i>z</i>': deltaZ,
-		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
-		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
-		'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
-		'Horiz. FOV (&deg;)': fovScreen,
-		'Aperture radius': apertureRadius,
-		'tan<sup>-1</sup>(focus. dist.)': Math.atan(focusDistance),
-		'No of rays': noOfRays,
-		'Env.-facing cam. (&deg;)': fovVideoFeedE,
-		'User-facing cam. (&deg;)': fovVideoFeedU,
-		'tan<sup>-1</sup>(distance)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
-		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
-		'Image': background,
-		'Point forward (in -<b>z</b> direction)': pointForward,
-		'Show/hide info': toggleInfoVisibility,
-		'Restart camera video': function() { 
-			recreateVideoFeeds(); 
-			postStatus("Restarting video stream");
-		}
-	}
-
-	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
-
-	const folderComponents = gui.addFolder( 'Optical components' );
-	folderComponents.add( params, 'Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
-	folderComponents.add( params, 'Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
-	folderComponents.add( params, 'Spiral type', 
-		{ 
-			'Logarithmic': 0, 
-			'Archimedean': 1, 
-			'Hyperbolic': 2, 
-		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
-	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	folderComponents.add( params, '<i>f</i><sub>1</sub>', -1, 1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	folderComponents.add( params, '&Delta;<i>z</i>', 0.00001, 0.01).onChange( (dz) => { deltaZ = dz; } );
-	folderComponents.add( params, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
-	folderComponents.add( params, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
-	folderComponents.add( params, 'Radius', 0.1, 10 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
-	
-	const folderBackground = gui.addFolder( 'Background' );
-	folderBackground.add( params, 'Image', 
-	{ 
-		'Camera video': 0, 
-		'Dr TIM': 1,
-		'Buzz Aldrin': 2,
-		// 'Pillars of creation': 3,
-		// 'Lunch atop a skyscraper': 4,
-		'Descent from Half Dome': 3
-		// 'Blue marble': 6
-	} ).onChange( (b) => { background = b; });
-	folderBackground.add( params, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
-	folderBackground.add( params, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
-	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
-	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
-	folderBackground.add( params, 'Restart camera video');
-	folderBackground.close();
-
-	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
-	folderVirtualCamera.add( params, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
-	folderVirtualCamera.add( params, 'Aperture radius', 0.0, 1.0).onChange( (r) => { apertureRadius = r; } );
-	folderVirtualCamera.add( params, 'tan<sup>-1</sup>(focus. dist.)', 
-		//Math.atan(0.1), 
-		-0.5*Math.PI,
-		0.5*Math.PI
-	).onChange( (a) => { focusDistance = Math.tan(a); } );
-	folderVirtualCamera.add( params, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
-	folderVirtualCamera.add( params, 'Point forward (in -<b>z</b> direction)' );
-	folderVirtualCamera.close();
-
-	// const folderSettings = gui.addFolder( 'Other controls' );
-	// // folderSettings.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
-	// // folderSettings.add( params, 'Lenslet type', { 'Ideal thin': true, 'Phase hologram': false } ).onChange( (t) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = t; });
-	// // folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
-	// folderSettings.add( params, 'Show/hide info');
-	// folderSettings.close();
-}
-
 // // see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
 // function createGUI() {
 // 	// const 
@@ -1511,7 +1596,7 @@ function getInfoString() {
 		`&nbsp;&nbsp;Position = (${camera.position.x.toPrecision(4)}, ${camera.position.y.toPrecision(4)}, ${camera.position.z.toPrecision(4)})<br>\n` +
 		`&nbsp;&nbsp;Horiz. FOV = ${fovScreen.toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Aperture radius = ${apertureRadius.toPrecision(4)}<br>\n` +
-		`&nbsp;&nbsp;Focussing distance = ${focusDistance.toPrecision(4)}<br>\n` +
+		`&nbsp;&nbsp;Focussing distance = ${Math.tan(atanFocusDistance).toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Number of rays = ${noOfRays}\n` +
 		'<br><br>Background image information<br>\n' +
 		// '&nbsp;&nbsp;Earthrise: <a href="https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg">https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg</a><br>\n' +
