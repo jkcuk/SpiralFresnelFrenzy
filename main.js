@@ -91,8 +91,8 @@ const click = new Audio('./click.m4a');
 // document.body.appendChild( stats.dom );
 
 init();
-animate();
-// renderer.setAnimationLoop( animate );
+// animate();
+renderer.setAnimationLoop( animate );
 
 function init() {
 	// create the info element first so that any problems can be communicated
@@ -108,8 +108,8 @@ function init() {
 	renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	// renderer.xr.enabled = true;
-	// document.body.appendChild( VRButton.createButton( renderer ) );	// for VR content
+	renderer.xr.enabled = true;
+	document.body.appendChild( VRButton.createButton( renderer ) );	// for VR content
 	document.body.appendChild( renderer.domElement );
 	// document.getElementById('livePhoto').appendChild( renderer.domElement );
 
@@ -134,7 +134,7 @@ function init() {
 }
 
 function animate() {
-	requestAnimationFrame( animate );
+	// requestAnimationFrame( animate );
 
 	// stats.begin();
 
@@ -1230,7 +1230,7 @@ function loadBackgroundImages() {
 function addEventListenersEtc() {
 	// handle device orientation
 	// window.addEventListener("deviceorientation", handleOrientation, true);
-
+	
 	// handle window resize
 	window.addEventListener("resize", onWindowResize, false);
 

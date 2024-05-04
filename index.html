@@ -19,7 +19,7 @@
         	}
 			#takePhotoButton {
 				position: absolute;
-			    bottom: 30px;
+			    bottom: 80px;
     			left: 50%;
     			transform: translateX(-50%); /* see https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically */
 				width: 80px; /* Set the width of the image */
@@ -75,6 +75,8 @@
     			left: 10px;
     			max-width: 15%; /* Set the width of the image */
 				max-height: 15%;
+				border-style: solid;
+				border-width: 2px; 
     	        cursor: pointer;
 				visibility: hidden;	/* hide this button for the moment */
 	            z-index: 1; /* Ensure image is above the canvas */
@@ -118,7 +120,7 @@
 		<img id="fullscreenButton" src="./fullscreenButton.png" alt="Toggle fullscreen">
 		<img id="takePhotoButton" src="./takePhotoButton.png" alt="Take photo">
 		<img id="storedPhoto" alt="Stored photo">
-		<img id="storedPhotoThumbnail" border="2" alt="Thumbnail of stored photo">
+		<img id="storedPhotoThumbnail" alt="Thumbnail of stored photo">
 		<script type="module" src="./main.js"></script>
 	</body>
 </html>
