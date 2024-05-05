@@ -20,6 +20,10 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
+import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';
+import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+
 let name = 'SpiralFresnelFrenzy';
 
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
@@ -91,8 +95,7 @@ const click = new Audio('./click.m4a');
 // document.body.appendChild( stats.dom );
 
 init();
-// animate();
-renderer.setAnimationLoop( animate );
+animate();
 
 function init() {
 	// create the info element first so that any problems can be communicated
@@ -129,11 +132,19 @@ function init() {
 	// refreshGUI();
 	createGUI();
 
+	addXRInteractivity();
+
 	createInfo();
 	refreshInfo();
 }
 
 function animate() {
+
+	renderer.setAnimationLoop( render );
+
+}
+
+function render() {
 	// requestAnimationFrame( animate );
 
 	// stats.begin();
@@ -1062,6 +1073,51 @@ function createGUI() {
 	// // folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
 	// folderSettings.add( params, 'Show/hide info');
 	// folderSettings.close();
+}
+
+function addXRInteractivity() {
+	// see https://github.com/mrdoob/three.js/blob/master/examples/webxr_vr_sandbox.html
+
+	// the two hand controllers
+
+	const geometry = new THREE.BufferGeometry();
+	geometry.setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 5 ) ] );
+
+	const controller1 = renderer.xr.getController( 0 );
+	controller1.add( new THREE.Line( geometry ) );
+	scene.add( controller1 );
+
+	const controller2 = renderer.xr.getController( 1 );
+	controller2.add( new THREE.Line( geometry ) );
+	scene.add( controller2 );
+
+	//
+
+	const controllerModelFactory = new XRControllerModelFactory();
+
+	const controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+	controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+	scene.add( controllerGrip1 );
+
+	const controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+	controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+	scene.add( controllerGrip2 );
+
+	//
+
+	const group = new InteractiveGroup( renderer, camera );
+	// group.listenToPointerEvents( renderer, camera );
+	// group.listenToXRControllerEvents( controller1 );
+	// group.listenToXRControllerEvents( controller2 );
+	scene.add( group );
+
+	const mesh = new HTMLMesh( gui.domElement );
+	mesh.position.x = - 0.75;
+	mesh.position.y = 1.5;
+	mesh.position.z = - 0.5;
+	mesh.rotation.y = Math.PI / 4;
+	mesh.scale.setScalar( 2 );
+	group.add( mesh );	
 }
 
 // function updateGUI() {
