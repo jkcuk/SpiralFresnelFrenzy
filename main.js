@@ -1552,9 +1552,9 @@ function takePhoto() {
 		click.play();
 
 		storedPhoto = renderer.domElement.toDataURL('image/png');
-		storedPhotoInfoString = getInfoString() + ` deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+		storedPhotoInfoString = getInfoString();
 
-		storedPhotoDescription = name;
+		storedPhotoDescription = `${name} deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
 		// 
 		document.getElementById('storedPhoto').src=storedPhoto;
 		document.getElementById('storedPhotoThumbnail').src=storedPhoto;
