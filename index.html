@@ -17,6 +17,27 @@
     	    canvas {
         	    display: block; /* Make the canvas a block element to fill its container */
         	}
+			#info {
+				position: absolute;
+				background-color: rgba(0, 0, 0, 0.3);	/* semi-transparent black */
+				color: White;
+				font-family: Arial;
+				font-size: 9pt;
+				top: 60px;
+				left: 0px;
+				z-index: 1;
+				visibility: hidden;
+			}
+			#status {
+				position: absolute;
+				background-color: rgba(0, 0, 0, 0.3);	/* semi-transparent black */
+				color: White;
+				font-family: Arial;
+				font-size: 9pt;
+				bottom: 0px;
+				left: 0px;
+				z-index: 1;
+			}
 			#takePhotoButton {
 				position: absolute;
 			    bottom: 80px;
@@ -122,5 +143,7 @@
 		<img id="storedPhoto" alt="Stored photo">
 		<img id="storedPhotoThumbnail" alt="Thumbnail of stored photo">
 		<script type="module" src="./main.js"></script>
+		<div id="info" alt="Information">Information</div>
+		<div id="status" alt="Status information">Status</div>
 	</body>
 </html>

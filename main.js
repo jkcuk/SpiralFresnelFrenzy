@@ -1554,7 +1554,7 @@ function takePhoto() {
 		storedPhoto = renderer.domElement.toDataURL('image/png');
 		storedPhotoInfoString = getInfoString();
 
-		storedPhotoDescription = `${name} deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+		storedPhotoDescription = `${name}_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
 		// 
 		document.getElementById('storedPhoto').src=storedPhoto;
 		document.getElementById('storedPhotoThumbnail').src=storedPhoto;
@@ -1597,17 +1597,18 @@ async function share() {
  * Add a text field to the bottom left corner of the screen
  */
 function createStatus() {
+	status = document.getElementById('status');
 	// see https://stackoverflow.com/questions/15248872/dynamically-create-2d-text-in-three-js
-	status.style.position = 'absolute';
-	status.style.backgroundColor = "rgba(0, 0, 0, 0.3)";	// semi-transparent black
-	status.style.color = "White";
-	status.style.fontFamily = "Arial";
-	status.style.fontSize = "9pt";
+	// status.style.position = 'absolute';
+	// status.style.backgroundColor = "rgba(0, 0, 0, 0.3)";	// semi-transparent black
+	// status.style.color = "White";
+	// status.style.fontFamily = "Arial";
+	// status.style.fontSize = "9pt";
+	// status.style.bottom = 0 + 'px';
+	// status.style.left = 0 + 'px';
+	// status.style.zIndex = 1;
+	// document.body.appendChild(status);	
 	postStatus("Welcome!");
-	status.style.bottom = 0 + 'px';
-	status.style.left = 0 + 'px';
-	status.style.zIndex = 1;
-	document.body.appendChild(status);	
 }
 
 function postStatus(text) {
@@ -1656,6 +1657,7 @@ function getInfoString() {
 		`&nbsp;&nbsp;Aperture radius = ${apertureRadius.toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Focussing distance = ${Math.tan(atanFocusDistance).toPrecision(4)}<br>\n` +
 		`&nbsp;&nbsp;Number of rays = ${noOfRays}\n` +
+		`<br><br>Stored photo description/name = ${storedPhotoDescription}\n` +
 		'<br><br>Background image information<br>\n' +
 		// '&nbsp;&nbsp;Earthrise: <a href="https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg">https://en.wikipedia.org/wiki/File:NASA-Apollo8-Dec24-Earthrise.jpg</a><br>\n' +
 		'&nbsp;&nbsp;"Buzz Aldrin": based on <a href="https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg">https://en.wikipedia.org/wiki/File:Aldrin_Apollo_11.jpg</a><br>\n' +
@@ -1678,18 +1680,19 @@ function refreshInfo() {
  * Add a text field to the top left corner of the screen
  */
 function createInfo() {
+	info = document.getElementById('info');
 	// see https://stackoverflow.com/questions/15248872/dynamically-create-2d-text-in-three-js
-	info.style.position = 'absolute';
-	info.style.backgroundColor = "rgba(0, 0, 0, 0.3)";	// semi-transparent black
-	info.style.color = "White";
-	info.style.fontFamily = "Arial";
-	info.style.fontSize = "9pt";
+	// info.style.position = 'absolute';
+	// info.style.backgroundColor = "rgba(0, 0, 0, 0.3)";	// semi-transparent black
+	// info.style.color = "White";
+	// info.style.fontFamily = "Arial";
+	// info.style.fontSize = "9pt";
+	// info.style.top = 60 + 'px';
+	// info.style.left = 0 + 'px';
+	// info.style.zIndex = 1;
+	// info.style.visibility = "hidden";
+	// document.body.appendChild(info);
 	info.innerHTML = "-- nothing to show (yet) --";
-	info.style.top = 60 + 'px';
-	info.style.left = 0 + 'px';
-	info.style.zIndex = 1;
-	document.body.appendChild(info);
-	info.style.visibility = "hidden";
 }
 
 function setInfo(text) {
