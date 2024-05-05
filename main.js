@@ -532,8 +532,8 @@ function addRaytracingSphere() {
 			visible2: { value: true },
 			z2: { value: 0.0 },
 			phi2: { value: 0 },	// angle by which component 2 is rotated around the z axis, in radians
-			f1: { value: 0.05 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
-			b: { value: 0.01 },	// winding parameter of the spiral
+			f1: { value: 0.1 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+			b: { value: 0.02 },	// winding parameter of the spiral
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
 			alvarezWindingFocusing: { value: true },
@@ -1050,7 +1050,7 @@ function createGUI() {
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
 	folderBackground.add( GUIParams, 'Restart camera video');
-	folderBackground.close();
+	// folderBackground.close();
 
 	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
 	folderVirtualCamera.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
@@ -1065,7 +1065,7 @@ function createGUI() {
 	// folderVirtualCamera.add( atanFocusDistance, 'atan focus dist', -0.5*Math.PI, +0.5*Math.PI ).listen();
 	folderVirtualCamera.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
 	folderVirtualCamera.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
-	folderVirtualCamera.close();
+	// folderVirtualCamera.close();
 
 	// const folderSettings = gui.addFolder( 'Other controls' );
 	// // folderSettings.add( params, 'Video feed forward' ).onChange( (b) => { raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value = b; } );
