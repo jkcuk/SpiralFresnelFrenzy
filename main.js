@@ -1575,12 +1575,16 @@ async function share() {
 		.then(blob => {
 			const file = new File([blob], storedPhotoDescription+'.png', { type: blob.type });
 
+			// create an html blob containing the parameter values
+			const blobParams = new Blob(["<html>"+storedPhotoInfoString+"</html>"], { type: "text/html" });
+			const fileParams = new File([blobParams], storedPhotoDescription+'.html', { type: blob.type });
+
 			// Use the Web Share API to share the screenshot
 			if (navigator.share) {
 				navigator.share({
 					title: storedPhotoDescription,
 					text: storedPhotoInfoString,
-					files: [file],
+					files: [file, fileParams],
 				});
 			} else {
 				postStatus('Sharing is not supported by this browser.');
