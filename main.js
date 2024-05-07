@@ -1554,7 +1554,9 @@ function takePhoto() {
 		storedPhoto = renderer.domElement.toDataURL('image/png');
 		storedPhotoInfoString = getInfoString();
 
-		storedPhotoDescription = `${name}_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+		storedPhotoDescription = 
+			// `${name}_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+			name + `_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
 		// 
 		document.getElementById('storedPhoto').src=storedPhoto;
 		document.getElementById('storedPhotoThumbnail').src=storedPhoto;
@@ -1673,7 +1675,7 @@ function refreshInfo() {
 	if(showingStoredPhoto) setInfo( storedPhotoInfoString );
 	else setInfo( getInfoString() );
 
-	if(info.style.visibility == "visible") setTimeout( refreshInfo , 100);	// refresh again a while
+	if(info.style.visibility === "visible") setTimeout( refreshInfo , 100);	// refresh again a while
 }
 
 /** 
