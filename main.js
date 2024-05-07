@@ -56,17 +56,17 @@ let cameraLensDistance = 3.0;
 let raytracingSphereRadius = 20.0;
 
 // camera with wide aperture
-let apertureRadius = 0.0;
+let apertureRadius = 0.01;
 let atanFocusDistance = Math.atan(3e8);	// 1 light second
 let noOfRays = 1;
-let autofocus = false;
+let autofocus = true;
 
 // the status text area
-let status = document.createElement('div');
+let status;	// = document.createElement('div');
 let statusTime;	// the time the last status was posted
 
 // the info text area
-let info = document.createElement('div');
+let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
