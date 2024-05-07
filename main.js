@@ -56,7 +56,7 @@ let cameraLensDistance = 3.0;
 let raytracingSphereRadius = 20.0;
 
 // camera with wide aperture
-let apertureRadius = 0.01;
+let apertureRadius = 0.02;
 let atanFocusDistance = Math.atan(3e8);	// 1 light second
 let noOfRays = 1;
 let autofocus = true;
