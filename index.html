@@ -25,7 +25,7 @@
 				font-size: 9pt;
 				top: 60px;
 				left: 0px;
-				z-index: 1;
+				z-index: 2;
 				visibility: hidden;
 			}
 			#status {
@@ -36,7 +36,7 @@
 				font-size: 9pt;
 				bottom: 0px;
 				left: 0px;
-				z-index: 1;
+				z-index: 5;
 			}
 			#takePhotoButton {
 				position: absolute;
@@ -45,7 +45,7 @@
     			transform: translateX(-50%); /* see https://stackoverflow.com/questions/19461521/how-to-center-an-element-horizontally-and-vertically */
 				width: 80px; /* Set the width of the image */
     	        cursor: pointer;
-	            z-index: 2; /* Ensure image is above the canvas */
+	            z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#infoButton {
     	        position: absolute; /* Position the image absolutely */
@@ -53,7 +53,7 @@
           	  	top: 20px;
             	width: 30px; /* Set the width of the image */
     	        cursor: pointer;
-				z-index: 2; /* Ensure image is above the canvas */
+				z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#backButton {
     	        position: absolute; /* Position the image absolutely */
@@ -62,7 +62,7 @@
             	width: 30px; /* Set the width of the image */
     	        cursor: pointer;
 				visibility: hidden;	/* hide this button for the moment */
-	            z-index: 2; /* Ensure image is above the canvas */
+	            z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#shareButton {
     	        position: absolute; /* Position the image absolutely */
@@ -71,7 +71,7 @@
             	width: 30px; /* Set the width of the image */
     	        cursor: pointer;
 				visibility: hidden;	/* hide this button for the moment */
-	            z-index: 2; /* Ensure image is above the canvas */
+	            z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#deleteButton {
     	        position: absolute; /* Position the image absolutely */
@@ -80,7 +80,7 @@
             	width: 30px; /* Set the width of the image */
     	        cursor: pointer;
 				visibility: hidden;	/* hide this button for the moment */
-	            z-index: 2; /* Ensure image is above the canvas */
+	            z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#fullscreenButton {
     	        position: absolute; /* Position the image absolutely */
@@ -88,7 +88,7 @@
           	  	bottom: 20px;
             	width: 30px; /* Set the width of the image */
     	        cursor: pointer;
-	            z-index: 2; /* Ensure image is above the canvas */
+	            z-index: 5; /* Ensure image is above the canvas */
   	      	}
 			#storedPhotoThumbnail {
 				position: absolute;
