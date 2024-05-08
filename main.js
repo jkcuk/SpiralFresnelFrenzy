@@ -1704,7 +1704,7 @@ function createInfo() {
 
 function setInfo(text) {
 	info.innerHTML = text;
-	console.log('info: '+text);
+	// console.log('info: '+text);
 }
 
 function toggleInfoVisibility() {
