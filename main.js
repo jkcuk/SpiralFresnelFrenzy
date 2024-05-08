@@ -24,7 +24,8 @@ import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js';
 import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 
-let name = 'SpiralFresnelFrenzy';
+let appName = 'SpiralFresnelFrenzy';
+let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel lenses';
 
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
@@ -1556,7 +1557,7 @@ function takePhoto() {
 
 		storedPhotoDescription = 
 			// `${name}_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
-			name + `_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+			appName + `_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
 		// 
 		document.getElementById('storedPhoto').src=storedPhoto;
 		document.getElementById('storedPhotoThumbnail').src=storedPhoto;
@@ -1583,7 +1584,7 @@ async function share() {
 			if (navigator.share) {
 				navigator.share({
 					title: storedPhotoDescription,
-					text: storedPhotoInfoString,
+					// text: storedPhotoInfoString,
 					files: [file, fileParams],
 				});
 			} else {
@@ -1614,7 +1615,7 @@ function createStatus() {
 	// status.style.left = 0 + 'px';
 	// status.style.zIndex = 1;
 	// document.body.appendChild(status);	
-	postStatus("Welcome!");
+	postStatus("Welcome to SpiralFresnelFrenzy, the premier AR simulation tool for adaptive spiral Fresnel lenses!");
 }
 
 function postStatus(text) {
@@ -1623,7 +1624,7 @@ function postStatus(text) {
 
 	// show the text only for 3 seconds
 	statusTime = new Date().getTime();
-	setTimeout( () => { if(new Date().getTime() - statusTime > 2999) status.innerHTML = '&nbsp;'+name+', University of Glasgow, <a href="https://github.com/jkcuk/'+name+'">https://github.com/jkcuk/'+name+'</a>' }, 3000);
+	setTimeout( () => { if(new Date().getTime() - statusTime > 2999) status.innerHTML = '&nbsp;'+appName+', University of Glasgow, <a href="https://github.com/jkcuk/'+appName+'">https://github.com/jkcuk/'+appName+'</a>' }, 3000);
 }
 
 function backgroundToString() {
@@ -1671,7 +1672,9 @@ function getInfoString() {
 		// 'Pillars of creation: <a href="https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg">https://commons.wikimedia.org/wiki/File:Pillars_2014_HST_denoise_0.6_12.jpg</a><br>\n' +
 		// 'Lunch atop a skyscraper: <a href="https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg">https://en.wikipedia.org/wiki/File:Lunch_atop_a_Skyscraper_-_Charles_Clyde_Ebbets.jpg</a><br>\n' +
 		'"Dr TIM" and "Descent from Half Dome": own work by the authors<br>\n' +
-		'All images used are in the public domain.'
+		'All images used are in the public domain.<br>\n' +
+		`<h4>${appName}</h4>\n` +
+		`${appName} is ${appDescription}.`
 		;
 		console.log("*");
 }
@@ -1688,17 +1691,6 @@ function refreshInfo() {
  */
 function createInfo() {
 	info = document.getElementById('info');
-	// see https://stackoverflow.com/questions/15248872/dynamically-create-2d-text-in-three-js
-	// info.style.position = 'absolute';
-	// info.style.backgroundColor = "rgba(0, 0, 0, 0.3)";	// semi-transparent black
-	// info.style.color = "White";
-	// info.style.fontFamily = "Arial";
-	// info.style.fontSize = "9pt";
-	// info.style.top = 60 + 'px';
-	// info.style.left = 0 + 'px';
-	// info.style.zIndex = 1;
-	// info.style.visibility = "hidden";
-	// document.body.appendChild(info);
 	info.innerHTML = "-- nothing to show (yet) --";
 }
 
