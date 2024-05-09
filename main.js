@@ -71,7 +71,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let focusDistanceControl;
+let spiralTypeControl, backgroundControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -292,8 +292,14 @@ function updateUniforms() {
 	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaPhi;	// +0.5*deltaPhi;
 
 	// arrange them symmetrically around z=0
-	raytracingSphereShaderMaterial.uniforms.z1.value = +0.5*deltaZ;
-	raytracingSphereShaderMaterial.uniforms.z2.value = -0.5*deltaZ;
+	raytracingSphereShaderMaterial.uniforms.c1.value.z = +0.5*deltaZ;
+	raytracingSphereShaderMaterial.uniforms.c2.value.z = -0.5*deltaZ;
+
+	// if we are in vr mode, move the lenses up
+	if(renderer.xr.enabled && renderer.xr.isPresenting) {
+		raytracingSphereShaderMaterial.uniforms.c1.value.y = 1.5;
+		raytracingSphereShaderMaterial.uniforms.c2.value.y = 1.5;
+	}
 
 	let b2pi = raytracingSphereShaderMaterial.uniforms.b.value*2.0*Math.PI;
 	raytracingSphereShaderMaterial.uniforms.b2pi.value = b2pi;
@@ -538,10 +544,10 @@ function addRaytracingSphere() {
 			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(-b phi)
 			radius: { value: 1.0 },	// radius of the Fresnel lens
 			visible1: { value: true },
-			z1: { value: 0.0 },
+			c1: { value: new THREE.Vector3(0, 0, 0) },	// centre of part 1
 			phi1: { value: 0 },	// angle by which component 1 is rotated around the z axis, in radians
 			visible2: { value: true },
-			z2: { value: 0.0 },
+			c2: { value: new THREE.Vector3(0, 0, 0) },	// centre of part 2
 			phi2: { value: 0 },	// angle by which component 2 is rotated around the z axis, in radians
 			f1: { value: 0.1 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 			b: { value: 0.02 },	// winding parameter of the spiral
@@ -593,10 +599,10 @@ function addRaytracingSphere() {
 			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=b/phi
 			uniform float radius;	// radius of the Fresnel lens
 			uniform bool visible1;	// true if component 1 is visible, false otherwise
-			uniform float z1;	// z component of plane of component 1
+			uniform vec3 c1;	// centre of component 1
 			uniform float phi1;	// angle by which component 1 is rotated (in radians)
 			uniform bool visible2;	// true if component 2 is visible, false otherwise
-			uniform float z2;	// z component of plane of component 2
+			uniform vec3 c2;	// centre of component 2
 			uniform float phi2;	// angle by which component 2 is rotated (in radians)
 			uniform float f1;	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 			uniform float b;	// winding parameter of the spiral
@@ -798,18 +804,18 @@ function addRaytracingSphere() {
 			}
 
 			// Pass the current ray (start point p, direction d, brightness factor b) through a spiral lens.
-			// z0 is the z coordinate of the plane of the spiral lens;
+			// c is the centre (principal/nodal) point of the spiral lens, which is in the plane z = c.z
 			// phi is the angle (in radians) by which the component is rotated around the z axis
 			void passThroughSpiralLens(
 				inout vec3 p, 
 				inout vec3 d, 
 				inout vec4 b,
-				float z0,
+				vec3 c,
 				float deltaPhi,
 				float f1
 			) {
 				bool isForward;
-				propagateForwardToZPlane(p, d, z0, isForward);
+				propagateForwardToZPlane(p, d, c.z, isForward);
 
 				if(isForward) {
 					// there is an intersection with the plane of this component in the ray's forward direction
@@ -958,8 +964,8 @@ function addRaytracingSphere() {
 						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
 						else {
 							// pass first through component 1, then component 2, then to environment-facing video feed
-							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
-							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
+							if(visible1) passThroughSpiralLens(p, d, b, c1, phi1,  f1);
+							if(visible2) passThroughSpiralLens(p, d, b, c2, phi2, -f1);
 						}
 						if(keepVideoFeedForward) 
 							color = getColorOfBackground(p, d, b, backgroundTexture, halfWidthBackground, halfHeightBackground, backgroundColour);
@@ -970,8 +976,8 @@ function addRaytracingSphere() {
 						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
 						else {
 							// pass first through component 2, then component 1, then to user-facing video feed
-							if(visible2) passThroughSpiralLens(p, d, b, z2, phi2, -f1);
-							if(visible1) passThroughSpiralLens(p, d, b, z1, phi1,  f1);
+							if(visible2) passThroughSpiralLens(p, d, b, c2, phi2, -f1);
+							if(visible1) passThroughSpiralLens(p, d, b, c1, phi1,  f1);
 						}
 						if(keepVideoFeedForward) 
 							color = getColorOfBackground(p, d, b, backgroundTexture, halfWidthBackground, halfHeightBackground, backgroundColour);
@@ -1002,9 +1008,11 @@ function createGUI() {
 		visible1: raytracingSphereShaderMaterial.uniforms.visible1.value,
 		visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
-		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
-		spiralType: function() { 
-			raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3; 
+		// 'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+		spiralType: getCylindricalLensSpiralTypeString(),
+		cycleSpiralType: function() { 
+			raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
+			spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
 		},
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
@@ -1021,8 +1029,12 @@ function createGUI() {
 		'tan<sup>-1</sup>(distance)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
 		'Autofocus': autofocus,
 		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
-		'Image': background,
-		backgroundImage: function() { background = (background + 1)%4; },
+		// 'Image': background,
+		background: backgroundToString(),
+		cycleBackground: function() { 
+			background = (background + 1)%4; 
+			backgroundControl.setValue( backgroundToString() );
+		},
 		'Point forward (in -<b>z</b> direction)': pointForward,
 		'Show/hide info': toggleInfoVisibility,
 		'Restart camera video': function() { 
@@ -1036,13 +1048,15 @@ function createGUI() {
 	// const folderComponents = gui.addFolder( 'Optical components' );
 	gui.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
 	gui.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
-	gui.add( GUIParams, 'Spiral type', 
-		{ 
-			'Logarithmic': 0, 
-			'Archimedean': 1, 
-			'Hyperbolic': 2, 
-		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
-	gui.add( GUIParams, 'spiralType' ).name( 'Cycle spiral type' );
+	// gui.add( GUIParams, 'Spiral type', 
+	// 	{ 
+	// 		'Logarithmic': 0, 
+	// 		'Archimedean': 1, 
+	// 		'Hyperbolic': 2, 
+	// 	} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+	spiralTypeControl = gui.add( GUIParams, 'spiralType' ).name( 'Spiral type' );
+	spiralTypeControl.disable(true);
+	gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
 	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	gui.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
@@ -1051,17 +1065,19 @@ function createGUI() {
 	gui.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
 
 	// const folderBackground = gui.addFolder( 'Background' );
-	gui.add( GUIParams, 'Image', 
-	{ 
-		'Camera video': 0, 
-		'Dr TIM': 1,
-		'Buzz Aldrin': 2,
-		// 'Pillars of creation': 3,
-		// 'Lunch atop a skyscraper': 4,
-		'Descent from Half Dome': 3
-		// 'Blue marble': 6
-	} ).name( 'Background' ).onChange( (b) => { background = b; });
-	gui.add( GUIParams, 'backgroundImage').name( 'Cycle background' );
+	// gui.add( GUIParams, 'Image', 
+	// { 
+	// 	'Camera video': 0, 
+	// 	'Dr TIM': 1,
+	// 	'Buzz Aldrin': 2,
+	// 	// 'Pillars of creation': 3,
+	// 	// 'Lunch atop a skyscraper': 4,
+	// 	'Descent from Half Dome': 3
+	// 	// 'Blue marble': 6
+	// } ).name( 'Background' ).onChange( (b) => { background = b; });
+	backgroundControl = gui.add( GUIParams, 'background' ).name( 'Background' );
+	backgroundControl.disable(true);
+	gui.add( GUIParams, 'cycleBackground').name( 'Cycle background' );
 	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
 	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
@@ -1262,7 +1278,7 @@ function getCylindricalLensSpiralTypeString() {
 			return "Archimedean";
 		case 2:
 		default:
-			return "Hyperbolic <i>r</i> = 1/(-<i>b&phi;</i>)";
+			return "Hyperbolic";
 	}
 }
   
