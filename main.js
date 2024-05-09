@@ -30,6 +30,8 @@ let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
 let yXR = 1.5;
+let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens
+let windingFocussing = 1;	// 0 = None, 1 = Alvarez
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -72,7 +74,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let spiralTypeControl, backgroundControl, focusDistanceControl;
+let showControl, spiralTypeControl, windingFocussingControl, backgroundControl, autofocusControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -289,6 +291,38 @@ function render() {
 // }
 
 function updateUniforms() {
+	switch(show) {
+	case 1:	// part 1
+		raytracingSphereShaderMaterial.uniforms.visible1.value = true;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
+		break;
+	case 2:	// part 2
+		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = true;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
+		break;
+	case 3:	// equivalent lens
+		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = true;
+		break;
+	case 0:	// both parts
+	default:
+		raytracingSphereShaderMaterial.uniforms.visible1.value = true;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = true;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
+	}
+
+	switch(windingFocussing) {
+	case 0:	// None
+		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = false;
+		break;
+	case 1:	// Alvarez
+	default:
+		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = true;
+	}
+
 	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaPhi;
 	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaPhi;	// +0.5*deltaPhi;
 
@@ -1016,22 +1050,28 @@ function createGUI() {
 	// gui.hide();
 
 	GUIParams = {
-		visible1: raytracingSphereShaderMaterial.uniforms.visible1.value,
-		visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
+		show: show2String(),
+		// cycleShow: function() {
+		// 	show = (show + 1) % 4;
+		// 	showControl.setValue( show2String() );
+		// },
+		// visible1: raytracingSphereShaderMaterial.uniforms.visible1.value,
+		// visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
 		// 'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
 		spiralType: getCylindricalLensSpiralTypeString(),
-		cycleSpiralType: function() { 
-			raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
-			spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
-		},
+		// cycleSpiralType: function() { 
+		// 	raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
+		// 	spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
+		// },
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		yXR: yXR, 
 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
-		'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
-		'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
+		// 'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
+		windingFocussing: windingFocussing2String(),
+		// 'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
 		'Horiz. FOV (&deg;)': fovScreen,
 		'Aperture radius': apertureRadius,
 		'tan<sup>-1</sup>(focus. dist.)': atanFocusDistance,
@@ -1039,14 +1079,15 @@ function createGUI() {
 		'Env.-facing cam. (&deg;)': fovVideoFeedE,
 		'User-facing cam. (&deg;)': fovVideoFeedU,
 		'tan<sup>-1</sup>(distance)': Math.atan(raytracingSphereShaderMaterial.uniforms.videoDistance.value),
-		'Autofocus': autofocus,
+		// 'Autofocus': autofocus,
+		autofocus: (autofocus?'On':'Off'),
 		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
 		// 'Image': background,
-		background: backgroundToString(),
-		cycleBackground: function() { 
-			background = (background + 1)%4; 
-			backgroundControl.setValue( backgroundToString() );
-		},
+		background: background2String(),
+		// cycleBackground: function() { 
+		// 	background = (background + 1)%4; 
+		// 	backgroundControl.setValue( background2String() );
+		// },
 		'Point forward (in -<b>z</b> direction)': pointForward,
 		'Show/hide info': toggleInfoVisibility,
 		'Restart camera video': function() { 
@@ -1058,8 +1099,13 @@ function createGUI() {
 	gui.add( GUIParams, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
 
 	// const folderComponents = gui.addFolder( 'Optical components' );
-	gui.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
-	gui.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
+	showControl = gui.add( GUIParams, 'show' ).name('Component(s)');
+	showControl.domElement.addEventListener( 'click', () => {
+		show = (show + 1) % 4;
+		showControl.setValue( show2String() );
+	} );
+	// gui.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
+	// gui.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
 	// gui.add( GUIParams, 'Spiral type', 
 	// 	{ 
 	// 		'Logarithmic': 0, 
@@ -1067,14 +1113,24 @@ function createGUI() {
 	// 		'Hyperbolic': 2, 
 	// 	} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 	spiralTypeControl = gui.add( GUIParams, 'spiralType' ).name( 'Spiral type' );
-	spiralTypeControl.disable(true);
-	gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
+	spiralTypeControl.domElement.addEventListener( 'click', () => { 
+		raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
+		spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
+	} );
+	// spiralTypeControl.disable(true);
+	// gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
 	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	gui.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
-	gui.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
-	gui.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing' );
+	windingFocussingControl.domElement.addEventListener( 'click', () => {
+		windingFocussing = (windingFocussing + 1) % 2;
+		windingFocussingControl.setValue( windingFocussing2String() );
+	} );
+	// gui.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
+	// gui.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
 	gui.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
+	gui.add( GUIParams, 'yXR', 0, 2, 0.1 ).name('<i>y</i><sub>XR</sub>').onChange( (y) => {yXR = y;} );
 
 	// const folderBackground = gui.addFolder( 'Background' );
 	// gui.add( GUIParams, 'Image', 
@@ -1088,8 +1144,12 @@ function createGUI() {
 	// 	// 'Blue marble': 6
 	// } ).name( 'Background' ).onChange( (b) => { background = b; });
 	backgroundControl = gui.add( GUIParams, 'background' ).name( 'Background' );
-	backgroundControl.disable(true);
-	gui.add( GUIParams, 'cycleBackground').name( 'Cycle background' );
+	backgroundControl.domElement.addEventListener( 'click', () => { 
+		background = (background + 1)%4; 
+		backgroundControl.setValue( background2String() );
+	} );
+	// backgroundControl.disable(true);
+	// gui.add( GUIParams, 'cycleBackground').name( 'Cycle background' );
 	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
 	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
@@ -1100,13 +1160,20 @@ function createGUI() {
 	// const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
 	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
 	gui.add( GUIParams, 'Aperture radius', 0.0, 1.0, 0.01).onChange( (r) => { apertureRadius = r; } );
-	gui.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
+	// gui.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
+	autofocusControl = gui.add( GUIParams, 'autofocus' ).name( 'Autofocus' );
+	autofocusControl.domElement.addEventListener( 'click', () => { 
+		autofocus = !autofocus;
+		autofocusControl.setValue( (autofocus?'On':'Off') );
+		focusDistanceControl.disable(autofocus);
+	} );
 	focusDistanceControl = gui.add( GUIParams, 'tan<sup>-1</sup>(focus. dist.)', 
 		//Math.atan(0.1), 
 		-0.5*Math.PI,
 		0.5*Math.PI,
 		0.001
 	).onChange( (a) => { atanFocusDistance = a; } );
+	focusDistanceControl.disable(autofocus);
 	// folderVirtualCamera.add( atanFocusDistance, 'atan focus dist', -0.5*Math.PI, +0.5*Math.PI ).listen();
 	gui.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
 	gui.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
@@ -1671,12 +1738,30 @@ function postStatus(text) {
 	setTimeout( () => { if(new Date().getTime() - statusTime > 2999) status.innerHTML = '&nbsp;'+appName+', University of Glasgow, <a href="https://github.com/jkcuk/'+appName+'">https://github.com/jkcuk/'+appName+'</a>' }, 3000);
 }
 
-function backgroundToString() {
+function background2String() {
 	switch (background) { 
 	case 0: return 'Camera video';
 	case 1: return 'Dr TIM';
 	case 2: return 'Buzz Aldrin';
 	case 3: return 'Descent from Half Dome';
+	default: return 'Undefined';
+	}
+}
+
+function show2String() {
+	switch(show) {
+	case 0: return 'Both parts';
+	case 1: return 'Part 1';
+	case 2: return 'Part 2';
+	case 3: return 'Equivalent lens';
+	default: return 'Undefined';
+	}
+}
+
+function windingFocussing2String() {
+	switch(windingFocussing) {
+	case 0: return 'None';
+	case 1: return 'Alvarez';
 	default: return 'Undefined';
 	}
 }
@@ -1697,7 +1782,7 @@ function getInfoString() {
 		`Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>\n` +
 		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>\n" +
 		'<h4>Background</h4>\n' +
-		`Image = ` + backgroundToString() + `<br>\n` +
+		`Image = ` + background2String() + `<br>\n` +
  		`Distance from origin = ${raytracingSphereShaderMaterial.uniforms.videoDistance.value.toPrecision(4)}<br>\n` +	// (user-facing) camera
 		`Horizontal field of view = ${fovBackground.toPrecision(4)}&deg;\n` +
 		// `User-facing camera = ${fovVideoFeedU.toPrecision(4)}&deg;<br>\n` +	// (user-facing) camera
