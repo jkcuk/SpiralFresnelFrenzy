@@ -415,12 +415,12 @@ function updateUniforms() {
 
 	let backgroundCentre = new THREE.Vector3(0, 0, 0);
 	// are we in VR mode?
-	if(renderer.xr.enabled && renderer.xr.isPresenting) {
-		backgroundCentre.copy(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
-	} else {	
+	// if(renderer.xr.enabled && renderer.xr.isPresenting) {
+	// 	backgroundCentre.copy(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
+	// } else {	
 		backgroundCentre.copy(camera.position);
 		backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
-	}
+	// }
 	// postStatus(`backgroundCentre=(${backgroundCentre.x}, ${backgroundCentre.y}, ${backgroundCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
 	// apertureBasis2 *= apertureRadius;
