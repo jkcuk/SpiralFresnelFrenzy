@@ -396,8 +396,13 @@ function updateUniforms() {
 	let viewDirection = new THREE.Vector3();
 	let apertureBasisVector1 = new THREE.Vector3();
 	let apertureBasisVector2 = new THREE.Vector3();
-	camera.getWorldDirection(viewDirection);
-	viewDirection.normalize();
+	// are we in VR mode?
+	if(renderer.xr.enabled && renderer.xr.isPresenting) {
+		viewDirection.copy(new THREE.Vector3(0, 0, -1));
+	} else {
+		camera.getWorldDirection(viewDirection);
+		viewDirection.normalize();
+	}
 	// postStatus(`viewDirection.lengthSq() = ${viewDirection.lengthSq()}`);
 	// if(counter < 10) console.log(`viewDirection = (${viewDirection.x.toPrecision(2)}, ${viewDirection.y.toPrecision(2)}, ${viewDirection.z.toPrecision(2)})`);
 
@@ -416,10 +421,10 @@ function updateUniforms() {
 	let backgroundCentre = new THREE.Vector3(0, 0, 0);
 	// are we in VR mode?
 	// if(renderer.xr.enabled && renderer.xr.isPresenting) {
-	// 	backgroundCentre.copy(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
+	// backgroundCentre.copy(new THREE.Vector3(0, yXR, -raytracingSphereShaderMaterial.uniforms.videoDistance.value));
 	// } else {	
-		backgroundCentre.copy(camera.position);
-		backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
+	backgroundCentre.copy(camera.position);
+	backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
 	// }
 	// postStatus(`backgroundCentre=(${backgroundCentre.x}, ${backgroundCentre.y}, ${backgroundCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
