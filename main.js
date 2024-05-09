@@ -1019,24 +1019,24 @@ function createGUI() {
 
 	gui.add( GUIParams, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
 
-	const folderComponents = gui.addFolder( 'Optical components' );
-	folderComponents.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
-	folderComponents.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
-	folderComponents.add( GUIParams, 'Spiral type', 
+	// const folderComponents = gui.addFolder( 'Optical components' );
+	gui.add( GUIParams, 'visible1' ).name('Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
+	gui.add( GUIParams, 'visible2' ).name('Show component 2').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible2.value = v; } );
+	gui.add( GUIParams, 'Spiral type', 
 		{ 
 			'Logarithmic': 0, 
 			'Archimedean': 1, 
 			'Hyperbolic': 2, 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
-	folderComponents.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	folderComponents.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	folderComponents.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
-	folderComponents.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
-	folderComponents.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
-	folderComponents.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
+	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+	gui.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
+	gui.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
+	gui.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
+	gui.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
 
-	const folderBackground = gui.addFolder( 'Background' );
-	folderBackground.add( GUIParams, 'Image', 
+	// const folderBackground = gui.addFolder( 'Background' );
+	gui.add( GUIParams, 'Image', 
 	{ 
 		'Camera video': 0, 
 		'Dr TIM': 1,
@@ -1045,27 +1045,27 @@ function createGUI() {
 		// 'Lunch atop a skyscraper': 4,
 		'Descent from Half Dome': 3
 		// 'Blue marble': 6
-	} ).name( 'Test' ).onChange( (b) => { background = b; });
-	folderBackground.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
-	folderBackground.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
+	} ).name( 'Background' ).onChange( (b) => { background = b; });
+	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
+	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
-	folderBackground.add( GUIParams, 'Restart camera video');
+	gui.add( GUIParams, 'Restart camera video');
 	// folderBackground.close();
 
-	const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
-	folderVirtualCamera.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
-	folderVirtualCamera.add( GUIParams, 'Aperture radius', 0.0, 1.0, 0.01).onChange( (r) => { apertureRadius = r; } );
-	folderVirtualCamera.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
-	focusDistanceControl = folderVirtualCamera.add( GUIParams, 'tan<sup>-1</sup>(focus. dist.)', 
+	// const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
+	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
+	gui.add( GUIParams, 'Aperture radius', 0.0, 1.0, 0.01).onChange( (r) => { apertureRadius = r; } );
+	gui.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
+	focusDistanceControl = gui.add( GUIParams, 'tan<sup>-1</sup>(focus. dist.)', 
 		//Math.atan(0.1), 
 		-0.5*Math.PI,
 		0.5*Math.PI,
 		0.001
 	).onChange( (a) => { atanFocusDistance = a; } );
 	// folderVirtualCamera.add( atanFocusDistance, 'atan focus dist', -0.5*Math.PI, +0.5*Math.PI ).listen();
-	folderVirtualCamera.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
-	folderVirtualCamera.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
+	gui.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
+	gui.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
 	// folderVirtualCamera.close();
 
 	// const folderSettings = gui.addFolder( 'Other controls' );
@@ -1118,7 +1118,7 @@ function addXRInteractivity() {
 	mesh.position.z = - 0.5;
 	mesh.rotation.y = Math.PI / 4;
 	mesh.scale.setScalar( 2 );
-	// group.add( mesh );	
+	group.add( mesh );	
 }
 
 // function updateGUI() {
