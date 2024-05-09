@@ -821,7 +821,7 @@ function addRaytracingSphere() {
 					// there is an intersection with the plane of this component in the ray's forward direction
 
 					// does the intersection point lie within the radius?
-					vec2 pixy = p.xy;
+					vec2 pixy = (p-c).xy;
 					float r2 = dot(pixy, pixy);
 					if(r2 < radius*radius) {
 						// the intersection point lies inside the radius, so the lens does something to the ray
