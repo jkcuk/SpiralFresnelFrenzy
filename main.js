@@ -416,7 +416,7 @@ function updateUniforms() {
 	let backgroundCentre = new THREE.Vector3(0, 0, 0);
 	// are we in VR mode?
 	if(renderer.xr.enabled && renderer.xr.isPresenting) {
-		backgroundCentre.addVector(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
+		backgroundCentre.copy(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
 	} else {	
 		backgroundCentre.copy(camera.position);
 		backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
