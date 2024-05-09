@@ -29,6 +29,7 @@ let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel
 
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
+let lensY = 0.0;
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -297,8 +298,8 @@ function updateUniforms() {
 
 	// if we are in vr mode, move the lenses up
 	if(renderer.xr.enabled && renderer.xr.isPresenting) {
-		raytracingSphereShaderMaterial.uniforms.c1.value.y = 1.5;
-		raytracingSphereShaderMaterial.uniforms.c2.value.y = 1.5;
+	raytracingSphereShaderMaterial.uniforms.c1.value.y = 1.5;
+	raytracingSphereShaderMaterial.uniforms.c2.value.y = 1.5;
 	}
 
 	let b2pi = raytracingSphereShaderMaterial.uniforms.b.value*2.0*Math.PI;
@@ -829,7 +830,7 @@ function addRaytracingSphere() {
 						// normalise d
 						vec3 dN = d/length(d);
 						// calculate the phase gradient, which defines the change in the transverse components
-						vec2 pRotated = rotate(p.xy, deltaPhi);
+						vec2 pRotated = rotate(pixy, deltaPhi);
 						vec2 phaseGradient = rotate(calculatePhaseGradient(pRotated.x, pRotated.y, r2, f1), -deltaPhi);
 						// transverse components of the outgoing light-ray direction
 						vec2 dxy = dN.xy + phaseGradient;
@@ -1015,6 +1016,7 @@ function createGUI() {
 			spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
 		},
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
+		y: lensY, 
 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
