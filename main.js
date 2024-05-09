@@ -29,7 +29,7 @@ let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel
 
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
-let lensY = 0.0;
+let yXR = 1.5;
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -298,8 +298,8 @@ function updateUniforms() {
 
 	// if we are in vr mode, move the lenses up
 	if(renderer.xr.enabled && renderer.xr.isPresenting) {
-	raytracingSphereShaderMaterial.uniforms.c1.value.y = 1.5;
-	raytracingSphereShaderMaterial.uniforms.c2.value.y = 1.5;
+		raytracingSphereShaderMaterial.uniforms.c1.value.y = yXR;
+		raytracingSphereShaderMaterial.uniforms.c2.value.y = yXR;
 	}
 
 	let b2pi = raytracingSphereShaderMaterial.uniforms.b.value*2.0*Math.PI;
@@ -414,8 +414,13 @@ function updateUniforms() {
 	apertureBasisVector2.crossVectors(viewDirection, apertureBasisVector1).normalize();
 
 	let backgroundCentre = new THREE.Vector3(0, 0, 0);
-	backgroundCentre.copy(camera.position);
-	backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
+	// are we in VR mode?
+	if(renderer.xr.enabled && renderer.xr.isPresenting) {
+		backgroundCentre.addVector(new THREE.Vector3(0, yXR, raytracingSphereShaderMaterial.uniforms.videoDistance.value));
+	} else {	
+		backgroundCentre.copy(camera.position);
+		backgroundCentre.addScaledVector(viewDirection, raytracingSphereShaderMaterial.uniforms.videoDistance.value);
+	}
 	// postStatus(`backgroundCentre=(${backgroundCentre.x}, ${backgroundCentre.y}, ${backgroundCentre.z})`);
 	// apertureBasis1 *= apertureRadius;
 	// apertureBasis2 *= apertureRadius;
@@ -1016,7 +1021,7 @@ function createGUI() {
 			spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
 		},
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
-		y: lensY, 
+		yXR: yXR, 
 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
