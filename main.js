@@ -112,8 +112,6 @@ function init() {
 	renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.xr.enabled = true;
-	document.body.appendChild( VRButton.createButton( renderer ) );	// for VR content
 	document.body.appendChild( renderer.domElement );
 	// document.getElementById('livePhoto').appendChild( renderer.domElement );
 
@@ -133,7 +131,19 @@ function init() {
 	// refreshGUI();
 	createGUI();
 
-	addXRInteractivity();
+	// check if VR is supported (see https://developer.mozilla.org/en-US/docs/Web/API/XRSystem/isSessionSupported)...
+	if (navigator.xr) {
+		navigator.xr.isSessionSupported("immersive-vr").then((isSupported) => {
+		  if (isSupported) {
+			// ... and enable the relevant features
+			renderer.xr.enabled = true;
+			// use renderer.xr.isPresenting to find out if we are in XR mode -- see https://threejs.org/docs/#api/en/renderers/webxr/WebXRManager 
+			// (and https://threejs.org/docs/#api/en/renderers/WebGLRenderer.xr, which states that renderer.xr points to the WebXRManager)
+			document.body.appendChild( VRButton.createButton( renderer ) );	// for VR content
+			addXRInteractivity();
+		  }
+		});
+	  }
 
 	createInfo();
 	refreshInfo();
@@ -993,6 +1003,9 @@ function createGUI() {
 		visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
 		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
+		spiralType: function() { 
+			raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3; 
+		},
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
@@ -1009,6 +1022,7 @@ function createGUI() {
 		'Autofocus': autofocus,
 		'Video feed forward': raytracingSphereShaderMaterial.uniforms.keepVideoFeedForward.value,
 		'Image': background,
+		backgroundImage: function() { background = (background + 1)%4; },
 		'Point forward (in -<b>z</b> direction)': pointForward,
 		'Show/hide info': toggleInfoVisibility,
 		'Restart camera video': function() { 
@@ -1028,6 +1042,7 @@ function createGUI() {
 			'Archimedean': 1, 
 			'Hyperbolic': 2, 
 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
+	gui.add( GUIParams, 'spiralType' ).name( 'Cycle spiral type' );
 	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	gui.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
@@ -1046,6 +1061,7 @@ function createGUI() {
 		'Descent from Half Dome': 3
 		// 'Blue marble': 6
 	} ).name( 'Background' ).onChange( (b) => { background = b; });
+	gui.add( GUIParams, 'backgroundImage').name( 'Cycle background' );
 	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
 	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
