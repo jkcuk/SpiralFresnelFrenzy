@@ -1643,9 +1643,17 @@ function  pointForward() {
 	// renderer.xr.getCamera() HERE
 	// are we in VR mode?
 	if(renderer.xr.enabled && renderer.xr.isPresenting) {
-		renderer.xr.getCamera().position.x = 0;
-		// renderer.xr.getCamera().position.y = 0;
-		renderer.xr.getCamera().position.z = r;	
+		// see https://github.com/mrdoob/three.js/blob/master/examples/webxr_vr_teleport.html
+		const offsetPosition = { x: - INTERSECTION.x, y: - INTERSECTION.y, z: - INTERSECTION.z, w: 1 };
+		const offsetRotation = new THREE.Quaternion();
+		const transform = new XRRigidTransform( offsetPosition, offsetRotation );
+		const teleportSpaceOffset = baseReferenceSpace.getOffsetReferenceSpace( transform );
+
+		renderer.xr.setReferenceSpace( teleportSpaceOffset );
+
+		// renderer.xr.getCamera().position.x = 0;
+		// // renderer.xr.getCamera().position.y = 0;
+		// renderer.xr.getCamera().position.z = r;	
 	} else {
 		let r = camera.position.length();
 		camera.position.x = 0;
