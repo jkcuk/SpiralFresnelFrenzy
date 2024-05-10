@@ -911,11 +911,12 @@ function addRaytracingSphere() {
 			void passThroughEquivalentLens(
 				inout vec3 p, 
 				inout vec3 d, 
-				inout vec4 b
+				inout vec4 b,
+				vec3 c
 			) {
 				passThroughLens(
 					p, d, b,	// the ray
-					vec3(0, 0, 0),	// centreOfLens
+					c,	// centreOfLens
 					radius, 
 					equivalentLensF,	// focal length
 					true	// idealLens
@@ -1025,7 +1026,7 @@ function addRaytracingSphere() {
 	
 					if(d.z < 0.0) {
 						// the ray is travelling "forwards", in the (-z) direction;
-						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+						if(showEquivalentLens) passThroughEquivalentLens(p, d, b, vec3(c1.x, c1.y, 0)); 
 						else {
 							// pass first through component 1, then component 2, then to environment-facing video feed
 							if(visible1) passThroughSpiralLens(p, d, b, c1, phi1,  f1);
@@ -1037,7 +1038,7 @@ function addRaytracingSphere() {
 						else color = getColorOfVideoFeed(p, d, b, -videoDistance, videoFeedETexture, halfWidthE, halfHeightE, vec4(1, 1, 1, 1.0));
 					} else {
 						// the ray is travelling "backwards", in the (+z) direction;
-						if(showEquivalentLens) passThroughEquivalentLens(p, d, b); 
+						if(showEquivalentLens) passThroughEquivalentLens(p, d, b, vec3(c1.x, c1.y, 0)); 
 						else {
 							// pass first through component 2, then component 1, then to user-facing video feed
 							if(visible2) passThroughSpiralLens(p, d, b, c2, phi2, -f1);
@@ -1644,7 +1645,7 @@ function  pointForward() {
 	// are we in VR mode?
 	if(renderer.xr.enabled && renderer.xr.isPresenting) {
 		// see https://github.com/mrdoob/three.js/blob/master/examples/webxr_vr_teleport.html
-		const offsetPosition = { x: - INTERSECTION.x, y: - INTERSECTION.y, z: - INTERSECTION.z, w: 1 };
+		const offsetPosition = { x: 1, y: 0, z: 1, w: 1 };
 		const offsetRotation = new THREE.Quaternion();
 		const transform = new XRRigidTransform( offsetPosition, offsetRotation );
 		const teleportSpaceOffset = baseReferenceSpace.getOffsetReferenceSpace( transform );
