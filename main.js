@@ -29,9 +29,10 @@ let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel
 
 let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
+let deltaZMin = 0.00001;
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens
-let windingFocussing = 1;	// 0 = None, 1 = Alvarez
+let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -74,7 +75,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let showControl, spiralTypeControl, windingFocussingControl, backgroundControl, autofocusControl, focusDistanceControl;
+let showControl, spiralTypeControl, windingFocussingControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -318,6 +319,24 @@ function updateUniforms() {
 	case 0:	// None
 		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = false;
 		break;
+	case 2:	// separation
+		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = false;
+		if(raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value === 0) {
+			// the spiral type is logarithmic, which is the only type for which separation-based winding focussing works
+			if(deltaPhi >= 0) {
+				// deltaPhi >= 0, which is the other condition for separation-based winding focussing to work
+				deltaZ = raytracingSphereShaderMaterial.uniforms.f1.value*raytracingSphereShaderMaterial.uniforms.f1.value/calculateEquivalentLensF();
+				windingFocussingControl.domElement.style.color = "#FFFFFF";
+			} else {
+				// deltaPhi < 0; separation-based winding focussing doesn't work here
+				deltaZ = deltaZMin;
+				windingFocussingControl.domElement.style.color = "#FF0000";
+			}
+			deltaZControl.setValue(deltaZ);
+		} else {
+			windingFocussingControl.domElement.style.color = "#FF0000";
+		}
+		break;		
 	case 1:	// Alvarez
 	default:
 		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = true;
@@ -1059,7 +1078,7 @@ function createGUI() {
 		// visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
 		// 'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
-		spiralType: getCylindricalLensSpiralTypeString(),
+		spiralType: cylindricalLensSpiralType2String(),
 		// cycleSpiralType: function() { 
 		// 	raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
 		// 	spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
@@ -1115,17 +1134,25 @@ function createGUI() {
 	spiralTypeControl = gui.add( GUIParams, 'spiralType' ).name( 'Spiral type' );
 	spiralTypeControl.domElement.addEventListener( 'click', () => { 
 		raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
-		spiralTypeControl.setValue( getCylindricalLensSpiralTypeString() );
+		spiralTypeControl.setValue( cylindricalLensSpiralType2String() );
 	} );
 	// spiralTypeControl.disable(true);
 	// gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
 	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
-	gui.add( GUIParams, '&Delta;<i>z</i>', 0.00001, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
+	deltaZControl = gui.add( GUIParams, '&Delta;<i>z</i>', deltaZMin, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
 	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing' );
 	windingFocussingControl.domElement.addEventListener( 'click', () => {
-		windingFocussing = (windingFocussing + 1) % 2;
+		windingFocussing = (windingFocussing + 1) % 3;
 		windingFocussingControl.setValue( windingFocussing2String() );
+		if(windingFocussing === 1) {
+			deltaZ = deltaZMin;
+			deltaZControl.setValue(deltaZ);
+		}
+		if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) {
+			postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&phi; > 0');
+		}
+		deltaZControl.disable(windingFocussing === 2);
 	} );
 	// gui.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
 	// gui.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
@@ -1145,7 +1172,7 @@ function createGUI() {
 	// } ).name( 'Background' ).onChange( (b) => { background = b; });
 	backgroundControl = gui.add( GUIParams, 'background' ).name( 'Background' );
 	backgroundControl.domElement.addEventListener( 'click', () => { 
-		background = (background + 1)%4; 
+		background = (background + 1) % 4; 
 		backgroundControl.setValue( background2String() );
 	} );
 	// backgroundControl.disable(true);
@@ -1185,6 +1212,47 @@ function createGUI() {
 	// // folderSettings.add( params, 'Ideal lenses').onChange( (b) => { raytracingSphereShaderMaterial.uniforms.idealLenses.value = b; } );
 	// folderSettings.add( params, 'Show/hide info');
 	// folderSettings.close();
+}
+
+function cylindricalLensSpiralType2String() {
+	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
+		case 0:	
+			return "Logarithmic";
+		case 1: 
+			return "Archimedean";
+		case 2:
+		default:
+			return "Hyperbolic";
+	}
+}
+  
+function background2String() {
+	switch (background) { 
+	case 0: return 'Camera video';
+	case 1: return 'Dr TIM';
+	case 2: return 'Buzz Aldrin';
+	case 3: return 'Descent from Half Dome';
+	default: return 'Undefined';
+	}
+}
+
+function show2String() {
+	switch(show) {
+	case 0: return 'Both parts';
+	case 1: return 'Part 1';
+	case 2: return 'Part 2';
+	case 3: return 'Equivalent lens';
+	default: return 'Undefined';
+	}
+}
+
+function windingFocussing2String() {
+	switch(windingFocussing) {
+	case 0: return 'None';
+	case 1: return 'Alvarez';
+	case 2: return 'Separation (log spiral &amp; &Delta;&phi; > 0)';
+	default: return 'Undefined';
+	}
 }
 
 function addXRInteractivity() {
@@ -1349,18 +1417,6 @@ function createVideoFeeds() {
 	}
 }
 
-function getCylindricalLensSpiralTypeString() {
-	switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
-		case 0:	
-			return "Logarithmic";
-		case 1: 
-			return "Archimedean";
-		case 2:
-		default:
-			return "Hyperbolic";
-	}
-}
-  
 function loadBackgroundImages() {
 	const textureLoader = new THREE.TextureLoader();
 	// textureLoader.crossOrigin = "Anonymous";
@@ -1738,44 +1794,18 @@ function postStatus(text) {
 	setTimeout( () => { if(new Date().getTime() - statusTime > 2999) status.innerHTML = '&nbsp;'+appName+', University of Glasgow, <a href="https://github.com/jkcuk/'+appName+'">https://github.com/jkcuk/'+appName+'</a>' }, 3000);
 }
 
-function background2String() {
-	switch (background) { 
-	case 0: return 'Camera video';
-	case 1: return 'Dr TIM';
-	case 2: return 'Buzz Aldrin';
-	case 3: return 'Descent from Half Dome';
-	default: return 'Undefined';
-	}
-}
-
-function show2String() {
-	switch(show) {
-	case 0: return 'Both parts';
-	case 1: return 'Part 1';
-	case 2: return 'Part 2';
-	case 3: return 'Equivalent lens';
-	default: return 'Undefined';
-	}
-}
-
-function windingFocussing2String() {
-	switch(windingFocussing) {
-	case 0: return 'None';
-	case 1: return 'Alvarez';
-	default: return 'Undefined';
-	}
-}
-
 function getInfoString() {
 	return `<h4>Spiral Fresnel lens</h4>\n` +
 		`Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
 		`Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
 		`Rotation angle, &Delta;&phi; = ${(deltaPhi*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
-		'Spiral type = ' + getCylindricalLensSpiralTypeString() + '<br>\n' +
+		'Spiral type = ' + cylindricalLensSpiralType2String() + '<br>\n' +
 		`Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
 		`<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		`&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
-		'Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
+		'Winding focussing = ' + windingFocussing2String() + '<br>\n' +
+		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) ? '*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&phi; > 0!<br>\n' : 'All good!') +
+		// 'Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
 		`Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}\n` +	// radius of the Fresnel lens
 		`<h4>Equivalent lens</h4>\n` +
 		`Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>\n` +
