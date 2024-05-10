@@ -1796,20 +1796,21 @@ function postStatus(text) {
 
 function getInfoString() {
 	return `<h4>Spiral Fresnel lens</h4>\n` +
-		`Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
-		`Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
+		'Components shown = ' + show2String() + '<br>\n' +
+		// `Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
+		// `Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
 		`Rotation angle, &Delta;&phi; = ${(deltaPhi*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
 		'Spiral type = ' + cylindricalLensSpiralType2String() + '<br>\n' +
 		`Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
 		`<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		`&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
 		'Winding focussing = ' + windingFocussing2String() + '<br>\n' +
-		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) ? '*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&phi; > 0!<br>\n' : 'All good!') +
+		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) ? '<span style="color:red;">*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&phi; > 0! ***</span><br>\n' : '') +
 		// 'Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
-		`Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}\n` +	// radius of the Fresnel lens
-		`<h4>Equivalent lens</h4>\n` +
-		`Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>\n` +
-		`Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}<br>\n` +
+		`Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>\n` +	// radius of the Fresnel lens
+		// `<h4>Equivalent lens</h4>\n` +
+		// `Show instead of spiral Fresnel lens `+ (raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value?'&check;':'&cross;')+`<br>\n` +
+		`Focal length, <i>F</i> = ${calculateEquivalentLensF().toPrecision(4)}\n` +
 		// 'Lenslet type: '+(raytracingSphereShaderMaterial.uniforms.idealLenses.value?'Ideal thin lenses':'Phase holograms') + "<br>\n" +
 		'<h4>Background</h4>\n' +
 		`Image = ` + background2String() + `<br>\n` +
