@@ -31,7 +31,7 @@ let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated rela
 let deltaZ = 0.00001;
 let deltaZMin = 0.00001;
 let yXR = 1.5;
-let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens
+let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
 
 let scene;
@@ -307,6 +307,11 @@ function updateUniforms() {
 		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
 		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
 		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = true;
+		break;
+	case 4:	// none
+		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
 		break;
 	case 0:	// both parts
 	default:
@@ -1071,7 +1076,7 @@ function createGUI() {
 
 	GUIParams = {
 		show: function() {
-			show = (show + 1) % 4;
+			show = (show + 1) % 5;
 			showControl.name( 'Component(s): ' + show2String() );
 		},
 		// cycleShow: function() {
@@ -1269,6 +1274,7 @@ function show2String() {
 	case 1: return 'Part 1';
 	case 2: return 'Part 2';
 	case 3: return 'Equivalent lens';
+	case 4: return 'None';
 	default: return 'Undefined';
 	}
 }
