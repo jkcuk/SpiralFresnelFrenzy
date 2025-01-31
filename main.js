@@ -33,6 +33,7 @@ let deltaZMin = 0.00001;
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
+let psiPhaseCorrection = 1;	// 0 = Off, 1 = On
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -75,7 +76,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let showControl, spiralTypeControl, windingFocussingControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
+let showControl, spiralTypeControl, windingFocussingControl, psiPhaseCorrectionControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -347,6 +348,15 @@ function updateUniforms() {
 		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = true;
 	}
 
+	switch(psiPhaseCorrection) {
+		case 0:	// Off
+			raytracingSphereShaderMaterial.uniforms.psiPhaseCorrection.value = false;
+			break;
+		case 1:	// On
+		default:
+			raytracingSphereShaderMaterial.uniforms.psiPhaseCorrection.value = true;		
+	}
+
 	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaPhi;
 	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaPhi;	// +0.5*deltaPhi;
 
@@ -610,7 +620,7 @@ function addRaytracingSphere() {
 		side: THREE.DoubleSide,
 		// wireframe: true,
 		uniforms: {
-			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(-b phi)
+			cylindricalLensSpiralType: { value: 0 },	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=1/(-b psi)
 			radius: { value: 1.0 },	// radius of the Fresnel lens
 			visible1: { value: true },
 			c1: { value: new THREE.Vector3(0, 0, 0) },	// centre of part 1
@@ -618,11 +628,12 @@ function addRaytracingSphere() {
 			visible2: { value: true },
 			c2: { value: new THREE.Vector3(0, 0, 0) },	// centre of part 2
 			phi2: { value: 0 },	// angle by which component 2 is rotated around the z axis, in radians
-			f1: { value: 0.1 },	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+			f1: { value: 0.1 },	// focal length of cylindrical lens at r=1
 			b: { value: 0.02 },	// winding parameter of the spiral
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
-			alvarezWindingFocusing: { value: true },
+			alvarezWindingFocusing: { value: windingFocussing == 1 },
+			psiPhaseCorrection: { value: psiPhaseCorrection == 1 },
 			showEquivalentLens: { value: false },
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
@@ -665,7 +676,7 @@ function addRaytracingSphere() {
 
 			varying vec3 intersectionPoint;
 			
-			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=b/phi
+			uniform int cylindricalLensSpiralType;	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic r=-b/psi
 			uniform float radius;	// radius of the Fresnel lens
 			uniform bool visible1;	// true if component 1 is visible, false otherwise
 			uniform vec3 c1;	// centre of component 1
@@ -673,11 +684,12 @@ function addRaytracingSphere() {
 			uniform bool visible2;	// true if component 2 is visible, false otherwise
 			uniform vec3 c2;	// centre of component 2
 			uniform float phi2;	// angle by which component 2 is rotated (in radians)
-			uniform float f1;	// focal length of cylindrical lens (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+			uniform float f1;	// focal length of cylindrical lens at r=1
 			uniform float b;	// winding parameter of the spiral
 			uniform float b2pi;	// pre-calculated
 			uniform float nHalf;	// pre-calculated
 			uniform bool alvarezWindingFocusing;
+			uniform bool psiPhaseCorrection;
 			uniform bool showEquivalentLens;
 			uniform float equivalentLensF;
 
@@ -806,18 +818,18 @@ function addRaytracingSphere() {
 				}
 			}
 
-			// calculate the number of the winding that corresponds to position (r, psi)
-			float calculateN(float r, float psi) {
+			// calculate the number of the winding that corresponds to position (r, phi)
+			float calculateN(float r, float phi) {
 				switch(cylindricalLensSpiralType)
 				{
 				case 1:	// ARCHIMEDEAN
-					// return floor(((r - b*psi)/b2pi) + 0.5);
-					return floor(0.5 + (r - b*psi) / b2pi);
+					// return floor(((r - b*phi)/b2pi) + 0.5);
+					return floor(0.5 + (r - b*phi) / b2pi);
 				case 2:	// hyperbolic
-					return floor(0.5 + (-1.0/(r*b) - psi)/(2.0*PI));
+					return floor(0.5 + (-1.0/(r*b) - phi)/(2.0*PI));
 				case 0:	// LOGARITHMIC
 				default:
-					return floor(((log(r) - b*psi)/b2pi) + 0.5);
+					return floor(((log(r) - b*phi)/b2pi) + 0.5);
 				}
 			}
 
@@ -826,55 +838,122 @@ function addRaytracingSphere() {
 			// r2 is the square of r, which we need to calculate r and which we have already calculated, so we might
 			// as well pass it.
 			vec2 calculatePhaseGradient(float x, float y, float r2, float f1) {
-				// calculate r and psi, the polar coordinates
+				// calculate r and phi, the polar coordinates
 				float r = sqrt(r2);
-				float psi = atan(y, x);	// azimuthal angle, bound to the range [-pi, pi]
-				float n = calculateN(r, psi);	// the number of the winding the position (x, y) is on
-				float phi = psi + n*2.0*PI;	// (unbound) azimuthal angle phi
+				float phi = atan(y, x);	// azimuthal angle, bound to the range [-pi, pi]
+				float n = calculateN(r, phi);	// the number of the winding the position (x, y) is on
+				float psi = phi + n*2.0*PI;	// (unbound) azimuthal angle psi
 
 				float c;	// common factor
+				vec2 v;
 				switch(cylindricalLensSpiralType)
 				{
 				case 1:	// ARCHIMEDEAN
-					c = (r - b*phi) / (2.0*f1*r2);
+					c = b*(r-b*psi)/(2.0*f1*r2);
+					v = vec2(
+						c*(-3.0*b*y*psi + r*(y-2.0*x*psi)),
+						c*( 3.0*b*x*psi - r*(x+2.0*y*psi))
+					);
+
 					if(alvarezWindingFocusing) {
-						return vec2(
-							-c*(b*r*y + 2.0*r2*x + b*b*y*phi),
-							+c*(b*r*x - 2.0*r2*y + b*b*x*phi)
-						);
-					} else {
-						return vec2(
-							+c*b*(-3.0*b*y*phi + r*(y-2.0*x*phi)),
-							-c*b*(-3.0*b*x*phi + r*(x+2.0*y*phi))
+						c = (r-b*psi)*(r-b*psi)/(f1*r2);
+						v += vec2(
+							c*(-r*x - b*y),
+							c*(-r*y + b*x)
 						);
 					}
-				case 2:	// hyperbolic r = 1/(-b phi)
-					c = (b*r*phi + 1.0) / (2.0*b*f1*r2*phi*phi);
-					return vec2(
-						c*( y - b*r*y*phi + 2.0*b*r*x*phi*phi),
-						c*(-x + b*r*x*phi + 2.0*b*r*y*phi*phi)
+
+					if(psiPhaseCorrection) {
+						c = b*b*b*psi*psi / (2.0*f1*r2);
+						v += vec2(
+							-c*y,
+							+c*x
+						);
+					}
+
+					return v;
+
+					// if(alvarezWindingFocusing) {
+					// 	if(psiPhaseCorrection) {
+					// 		return vec2(
+					// 			-(2.0*r*x + b*(y-2.0*x*psi)) / (2.0*f1),
+					// 			-(2.0*r*y - b*(x+2.0*y*psi)) / (2.0*f1)
+					// 		);
+					// 	} else {
+					// 		c = (r - b*psi) / (2.0*f1*r2);
+					// 		return vec2(
+					// 			-c*(b*r*y + 2.0*r2*x + b*b*y*psi),
+					// 			+c*(b*r*x - 2.0*r2*y + b*b*x*psi)
+					// 		);
+					// 	}
+					// } else {
+					//  	// no Alvarez winding focussing
+					// 	if(psiPhaseCorrection) {
+					// 		c = b / (2.0*f1*r2);
+					// 		return vec2(
+					// 			c*(r2*y - 2.0*r*(r*x+2.0*b*y)*psi + 2.0*b*(r*x+b*y)*psi*psi),
+					// 			c*(-2.0*b*b*x*psi*psi - 2.0*b*r*psi*(2.0*x+y*psi) + r2*(x+2.0*y*psi))
+					// 		);
+					// 	} else {
+					// 		c = (r - b*psi) / (2.0*f1*r2);
+					// 		return vec2(
+					// 			+c*b*(-3.0*b*y*psi + r*(y-2.0*x*psi)),
+					// 			-c*b*(-3.0*b*x*psi + r*(x+2.0*y*psi))
+					// 		);
+					// 	}
+					// }
+				case 2:	// hyperbolic r = 1/(-b psi)
+					c = (b*r*psi + 1.0) / (2.0*b*f1*r2*psi*psi);
+
+					v = vec2(
+						c*( y - b*r*y*psi + 2.0*b*r*x*psi*psi),
+ 						c*(-x + b*r*x*psi + 2.0*b*r*y*psi*psi)
 					);
+
+					if(psiPhaseCorrection) {
+						c = 1.0 / (2.0*b*f1*r2*psi*psi);
+						v += vec2(
+							-y*c,
+							 x*c
+						);
+					}		
+					
+					return v;
+				
 				case 0:	// LOGARITHMIC
 				default:
+					float R = exp(b*psi);
+					float R2 = R*R;
 					if(alvarezWindingFocusing) {
-						c = exp(-b*phi)/(6.0*f1*r2);
-						return vec2(
-							c*( 4.0*b*exp(3.0*b*phi)*y + 3.0*exp(2.0*b*phi)*r*(x-b*y) - r*r2*(b*y+3.0*x)),
-							c*(-4.0*b*exp(3.0*b*phi)*x + 3.0*exp(2.0*b*phi)*r*(y+b*x) + r*r2*(b*x-3.0*y))
+						c = 1.0/(6.0*f1*r2*R);
+						v = vec2(
+							c*( 4.0*b*exp(3.0*b*psi)*y + 3.0*exp(2.0*b*psi)*r*(x-b*y) - r*r2*(b*y+3.0*x)),
+							c*(-4.0*b*exp(3.0*b*psi)*x + 3.0*exp(2.0*b*psi)*r*(y+b*x) + r*r2*(b*x-3.0*y))
 						);
 					} else {
-						c = (exp(b*phi)-r)/(f1*r2);
-						return vec2(
-							c*(r*x+b*exp(b*phi)*y),
-							c*(r*y-b*exp(b*phi)*x)
+						c = (exp(b*psi)-r)/(f1*r2);
+						v = vec2(
+							c*(r*x+b*exp(b*psi)*y),
+							c*(r*y-b*exp(b*psi)*x)
 						);
 					}
+
+					if(psiPhaseCorrection) {
+						c = b*R2 / (2.0*f1*r2);
+						v += vec2(
+							-y*c,
+							+x*c
+						);
+					}
+
+					return v;
+
 				}
 			}
 
 			// Pass the current ray (start point p, direction d, brightness factor b) through a spiral lens.
 			// c is the centre (principal/nodal) point of the spiral lens, which is in the plane z = c.z
-			// phi is the angle (in radians) by which the component is rotated around the z axis
+			// deltaPhi is the angle (in radians) by which the component is rotated around the z axis
 			void passThroughSpiralLens(
 				inout vec3 p, 
 				inout vec3 d, 
@@ -1113,6 +1192,10 @@ function createGUI() {
 			}
 			deltaZControl.disable(windingFocussing === 2);	
 		},
+		psiPhaseCorrection: function() {
+			psiPhaseCorrection = (psiPhaseCorrection + 1) % 2;
+			psiPhaseCorrectionControl.name( '&Psi; phase correction: ' + psiPhaseCorrection2String() );
+		},
 		// 'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
 		'Horiz. FOV (&deg;)': fovScreen,
 		'Aperture radius': apertureRadius,
@@ -1173,6 +1256,7 @@ function createGUI() {
 	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	deltaZControl = gui.add( GUIParams, '&Delta;<i>z</i>', deltaZMin, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
 	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing: ' + windingFocussing2String() );	// .name( 'Winding focussing' );
+	psiPhaseCorrectionControl = gui.add( GUIParams, 'psiPhaseCorrection' ).name( '&Psi; phase correction: ' + psiPhaseCorrection2String() );
 	// windingFocussingControl.domElement.addEventListener( 'click', () => {
 	// 	windingFocussing = (windingFocussing + 1) % 3;
 	// 	windingFocussingControl.setValue( windingFocussing2String() );
@@ -1285,6 +1369,14 @@ function windingFocussing2String() {
 	case 1: return 'Alvarez';
 	case 2: return 'Separation';	// (log spiral &amp; &Delta;&phi; > 0)';
 	default: return 'Undefined';
+	}
+}
+
+function psiPhaseCorrection2String() {
+	switch( psiPhaseCorrection ) {
+		case 0: return 'Off';
+		case 1: return 'On';
+		default: return 'Undefined';
 	}
 }
 
