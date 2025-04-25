@@ -27,13 +27,14 @@ import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFa
 let appName = 'SpiralFresnelFrenzy';
 let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel lenses';
 
-let deltaPhi = 20.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
+let pAFL = 1/(100*Math.PI/180.0);	// the ratio of focal power and the angle between the two components (in radians)
+let deltaPhi = 10.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
 let deltaZMin = 0.00001;
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
-let psiPhaseCorrection = 1;	// 0 = Off, 1 = On
+let azimuthalPhaseCorrection = 1;	// 0 = Off, 1 = On
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -76,7 +77,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let showControl, spiralTypeControl, windingFocussingControl, psiPhaseCorrectionControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
+let showControl, spiralTypeControl, windingFocussingControl, azimuthalPhaseCorrectionControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -293,6 +294,9 @@ function render() {
 // }
 
 function updateUniforms() {
+	let f1 = raytracingSphereShaderMaterial.uniforms.b.value/pAFL;
+	raytracingSphereShaderMaterial.uniforms.f1.value = f1;
+
 	switch(show) {
 	case 1:	// part 1
 		raytracingSphereShaderMaterial.uniforms.visible1.value = true;
@@ -331,7 +335,7 @@ function updateUniforms() {
 			// the spiral type is logarithmic, which is the only type for which separation-based winding focussing works
 			if(deltaPhi >= 0) {
 				// deltaPhi >= 0, which is the other condition for separation-based winding focussing to work
-				deltaZ = raytracingSphereShaderMaterial.uniforms.f1.value*raytracingSphereShaderMaterial.uniforms.f1.value/calculateEquivalentLensF();
+				deltaZ = f1*f1/calculateEquivalentLensF();
 				windingFocussingControl.domElement.style.color = "#FFFFFF";
 			} else {
 				// deltaPhi < 0; separation-based winding focussing doesn't work here
@@ -348,13 +352,13 @@ function updateUniforms() {
 		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = true;
 	}
 
-	switch(psiPhaseCorrection) {
+	switch(azimuthalPhaseCorrection) {
 		case 0:	// Off
-			raytracingSphereShaderMaterial.uniforms.psiPhaseCorrection.value = false;
+			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = false;
 			break;
 		case 1:	// On
 		default:
-			raytracingSphereShaderMaterial.uniforms.psiPhaseCorrection.value = true;		
+			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = true;		
 	}
 
 	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaPhi;
@@ -633,7 +637,7 @@ function addRaytracingSphere() {
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
 			alvarezWindingFocusing: { value: windingFocussing == 1 },
-			psiPhaseCorrection: { value: psiPhaseCorrection == 1 },
+			azimuthalPhaseCorrection: { value: azimuthalPhaseCorrection == 1 },
 			showEquivalentLens: { value: false },
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
@@ -689,7 +693,7 @@ function addRaytracingSphere() {
 			uniform float b2pi;	// pre-calculated
 			uniform float nHalf;	// pre-calculated
 			uniform bool alvarezWindingFocusing;
-			uniform bool psiPhaseCorrection;
+			uniform bool azimuthalPhaseCorrection;
 			uniform bool showEquivalentLens;
 			uniform float equivalentLensF;
 
@@ -863,7 +867,7 @@ function addRaytracingSphere() {
 						);
 					}
 
-					if(psiPhaseCorrection) {
+					if(azimuthalPhaseCorrection) {
 						c = b*b*b*psi*psi / (2.0*f1*r2);
 						v += vec2(
 							-c*y,
@@ -874,7 +878,7 @@ function addRaytracingSphere() {
 					return v;
 
 					// if(alvarezWindingFocusing) {
-					// 	if(psiPhaseCorrection) {
+					// 	if(azimuthalPhaseCorrection) {
 					// 		return vec2(
 					// 			-(2.0*r*x + b*(y-2.0*x*psi)) / (2.0*f1),
 					// 			-(2.0*r*y - b*(x+2.0*y*psi)) / (2.0*f1)
@@ -888,7 +892,7 @@ function addRaytracingSphere() {
 					// 	}
 					// } else {
 					//  	// no Alvarez winding focussing
-					// 	if(psiPhaseCorrection) {
+					// 	if(azimuthalPhaseCorrection) {
 					// 		c = b / (2.0*f1*r2);
 					// 		return vec2(
 					// 			c*(r2*y - 2.0*r*(r*x+2.0*b*y)*psi + 2.0*b*(r*x+b*y)*psi*psi),
@@ -910,7 +914,7 @@ function addRaytracingSphere() {
  						c*(-x + b*r*x*psi + 2.0*b*r*y*psi*psi)
 					);
 
-					if(psiPhaseCorrection) {
+					if(azimuthalPhaseCorrection) {
 						c = 1.0 / (2.0*b*f1*r2*psi*psi);
 						v += vec2(
 							-y*c,
@@ -938,7 +942,7 @@ function addRaytracingSphere() {
 						);
 					}
 
-					if(psiPhaseCorrection) {
+					if(azimuthalPhaseCorrection) {
 						c = b*R2 / (2.0*f1*r2);
 						v += vec2(
 							-y*c,
@@ -1146,7 +1150,6 @@ function addRaytracingSphere() {
 	scene.add( raytracingSphere );
 }
 
-
 // see https://github.com/mrdoob/three.js/blob/master/examples/webgl_animation_skinning_additive_blending.html
 function createGUI() {
 	// const 
@@ -1176,7 +1179,8 @@ function createGUI() {
 		// },
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		yXR: yXR, 
-		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		pDiopterPerDegree: pAFL * (Math.PI / 180.0),	// convert to diopter per degree
+		// '<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
 		// 'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
@@ -1192,9 +1196,9 @@ function createGUI() {
 			}
 			deltaZControl.disable(windingFocussing === 2);	
 		},
-		psiPhaseCorrection: function() {
-			psiPhaseCorrection = (psiPhaseCorrection + 1) % 2;
-			psiPhaseCorrectionControl.name( '&Psi; phase correction: ' + psiPhaseCorrection2String() );
+		azimuthalPhaseCorrection: function() {
+			azimuthalPhaseCorrection = (azimuthalPhaseCorrection + 1) % 2;
+			azimuthalPhaseCorrectionControl.name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
 		},
 		// 'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
 		'Horiz. FOV (&deg;)': fovScreen,
@@ -1252,11 +1256,20 @@ function createGUI() {
 	// } );
 	// spiralTypeControl.disable(true);
 	// gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
-	gui.add( GUIParams, '<i>b</i>', 0.001, 0.1, 0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 1, 0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
+	gui.add( GUIParams, '<i>b</i>', 0.001, 
+		0.1, 
+		0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.001 )
+		.name( '<i>p</i> (diopter / &deg;)' )
+		.onChange( (pDiopterPerDegree) => {
+			pAFL = pDiopterPerDegree / (Math.PI / 180.0);
+		} );
+	// gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 
+	// 	1, 
+	// 	0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	deltaZControl = gui.add( GUIParams, '&Delta;<i>z</i>', deltaZMin, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
 	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing: ' + windingFocussing2String() );	// .name( 'Winding focussing' );
-	psiPhaseCorrectionControl = gui.add( GUIParams, 'psiPhaseCorrection' ).name( '&Psi; phase correction: ' + psiPhaseCorrection2String() );
+	azimuthalPhaseCorrectionControl = gui.add( GUIParams, 'azimuthalPhaseCorrection' ).name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
 	// windingFocussingControl.domElement.addEventListener( 'click', () => {
 	// 	windingFocussing = (windingFocussing + 1) % 3;
 	// 	windingFocussingControl.setValue( windingFocussing2String() );
@@ -1372,8 +1385,8 @@ function windingFocussing2String() {
 	}
 }
 
-function psiPhaseCorrection2String() {
-	switch( psiPhaseCorrection ) {
+function azimuthalPhaseCorrection2String() {
+	switch( azimuthalPhaseCorrection ) {
 		case 0: return 'Off';
 		case 1: return 'On';
 		default: return 'Undefined';
@@ -1467,15 +1480,7 @@ function addXRInteractivity() {
 
 // return the focal length of the Fresnel lens
 function calculateEquivalentLensF() {
-	return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
-	// switch( raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value ) {
-	// 	case 0:	// logarithmic
-	// 	case 1:	// Archimedean
-	// 		return raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
-	// 	case 2:	// Hyperbolic
-	// 	default:
-	// 		return -raytracingSphereShaderMaterial.uniforms.f1.value/(raytracingSphereShaderMaterial.uniforms.b.value*deltaPhi);
-	// }
+	return 1/(pAFL*deltaPhi);
 }
 
 
@@ -1943,7 +1948,8 @@ function getInfoString() {
 		`Rotation angle, &Delta;&phi; = ${(deltaPhi*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
 		'Spiral type = ' + cylindricalLensSpiralType2String() + '<br>\n' +
 		`Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
-		`<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
+		`Ratio of focal power to rotation angle, <i>p</i> = ${(pAFL * (Math.PI / 180.0)).toPrecision(4)} diopter/&deg;<br>\n` +	// ratio of focal power to rotation angle
+		// `<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		`&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
 		'Winding focussing = ' + windingFocussing2String() + '<br>\n' +
 		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) ? '<span style="color:red;">*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&phi; > 0! ***</span><br>\n' : '') +
