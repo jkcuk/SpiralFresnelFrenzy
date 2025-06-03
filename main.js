@@ -27,8 +27,8 @@ import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFa
 let appName = 'SpiralFresnelFrenzy';
 let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel lenses';
 
-let pAFL = 1/(100*Math.PI/180.0);	// the ratio of focal power and the angle between the two components (in radians)
-let deltaPhi = 10.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
+let qAFL = 1/(100*Math.PI/180.0);	// the ratio of focal power and the angle between the two components (in radians)
+let deltaTheta = 10.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
 let deltaZ = 0.00001;
 let deltaZMin = 0.00001;
 let yXR = 1.5;
@@ -177,8 +177,8 @@ function render() {
 }
 
 // function updateUniforms() {
-// 	raytracingSphereShaderMaterial.uniforms.phi1.value = -0.5*deltaPhi;
-// 	raytracingSphereShaderMaterial.uniforms.phi2.value = +0.5*deltaPhi;
+// 	raytracingSphereShaderMaterial.uniforms.phi1.value = -0.5*deltaTheta;
+// 	raytracingSphereShaderMaterial.uniforms.phi2.value = +0.5*deltaTheta;
 
 // 	// arrange them symmetrically around z=0
 // 	raytracingSphereShaderMaterial.uniforms.z1.value = +0.5*deltaZ;
@@ -294,7 +294,7 @@ function render() {
 // }
 
 function updateUniforms() {
-	let f1 = raytracingSphereShaderMaterial.uniforms.b.value/pAFL;
+	let f1 = raytracingSphereShaderMaterial.uniforms.b.value/qAFL;
 	raytracingSphereShaderMaterial.uniforms.f1.value = f1;
 
 	switch(show) {
@@ -333,12 +333,12 @@ function updateUniforms() {
 		raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = false;
 		if(raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value === 0) {
 			// the spiral type is logarithmic, which is the only type for which separation-based winding focussing works
-			if(deltaPhi >= 0) {
-				// deltaPhi >= 0, which is the other condition for separation-based winding focussing to work
+			if(deltaTheta >= 0) {
+				// deltaTheta >= 0, which is the other condition for separation-based winding focussing to work
 				deltaZ = f1*f1/calculateEquivalentLensF();
 				windingFocussingControl.domElement.style.color = "#FFFFFF";
 			} else {
-				// deltaPhi < 0; separation-based winding focussing doesn't work here
+				// deltaTheta < 0; separation-based winding focussing doesn't work here
 				deltaZ = deltaZMin;
 				windingFocussingControl.domElement.style.color = "#FF0000";
 			}
@@ -361,8 +361,8 @@ function updateUniforms() {
 			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = true;		
 	}
 
-	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaPhi;
-	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaPhi;	// +0.5*deltaPhi;
+	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaTheta;
+	raytracingSphereShaderMaterial.uniforms.phi2.value = deltaTheta;	// +0.5*deltaTheta;
 
 	// arrange them symmetrically around z=0
 	raytracingSphereShaderMaterial.uniforms.c1.value.z = +0.5*deltaZ;
@@ -838,7 +838,7 @@ function addRaytracingSphere() {
 			}
 
 			// For the position (x, y), calculate the derivatives of the phase w.r.t. x and y, divided by k, i.e. (d (phase/k) / d x, d (phase/k) / d y).
-			// The spiral is rotated by deltaPhi.
+			// The spiral is rotated by deltaTheta.
 			// r2 is the square of r, which we need to calculate r and which we have already calculated, so we might
 			// as well pass it.
 			vec2 calculatePhaseGradient(float x, float y, float r2, float f1) {
@@ -957,13 +957,13 @@ function addRaytracingSphere() {
 
 			// Pass the current ray (start point p, direction d, brightness factor b) through a spiral lens.
 			// c is the centre (principal/nodal) point of the spiral lens, which is in the plane z = c.z
-			// deltaPhi is the angle (in radians) by which the component is rotated around the z axis
+			// deltaTheta is the angle (in radians) by which the component is rotated around the z axis
 			void passThroughSpiralLens(
 				inout vec3 p, 
 				inout vec3 d, 
 				inout vec4 b,
 				vec3 c,
-				float deltaPhi,
+				float deltaTheta,
 				float f1
 			) {
 				bool isForward;
@@ -981,8 +981,8 @@ function addRaytracingSphere() {
 						// normalise d
 						vec3 dN = d/length(d);
 						// calculate the phase gradient, which defines the change in the transverse components
-						vec2 pRotated = rotate(pixy, deltaPhi);
-						vec2 phaseGradient = rotate(calculatePhaseGradient(pRotated.x, pRotated.y, r2, f1), -deltaPhi);
+						vec2 pRotated = rotate(pixy, deltaTheta);
+						vec2 phaseGradient = rotate(calculatePhaseGradient(pRotated.x, pRotated.y, r2, f1), -deltaTheta);
 						// transverse components of the outgoing light-ray direction
 						vec2 dxy = dN.xy + phaseGradient;
 		
@@ -1167,7 +1167,7 @@ function createGUI() {
 		// },
 		// visible1: raytracingSphereShaderMaterial.uniforms.visible1.value,
 		// visible2: raytracingSphereShaderMaterial.uniforms.visible2.value,
-		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
+		'deltaThetaDeg': deltaTheta / Math.PI * 180.,
 		// 'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
 		spiralType: function() { 
 			raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = (raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value+1) % 3;
@@ -1179,10 +1179,10 @@ function createGUI() {
 		// },
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		yXR: yXR, 
-		pDiopterPerDegree: pAFL * (Math.PI / 180.0),	// convert to diopter per degree
+		pDiopterPerDegree: qAFL * (Math.PI / 180.0),	// convert to diopter per degree
 		// '<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
-		'<i>b</i>': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
+		'b': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
 		// 'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
 		windingFocussing: function() {
 			windingFocussing = (windingFocussing + 1) % 3;
@@ -1191,8 +1191,8 @@ function createGUI() {
 				deltaZ = deltaZMin;
 				deltaZControl.setValue(deltaZ);
 			}
-			if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) {
-				postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&phi; > 0');
+			if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaTheta < 0))) {
+				postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&theta; > 0');
 			}
 			deltaZControl.disable(windingFocussing === 2);	
 		},
@@ -1233,7 +1233,9 @@ function createGUI() {
 		}
 	}
 
-	gui.add( GUIParams, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
+	gui.add( GUIParams, 'deltaThetaDeg', -180, 180, .1 )
+	.name('&Delta;&theta; (&deg;)')
+	.onChange( (a) => { deltaTheta = a/180.0*Math.PI; } );
 
 	// const folderComponents = gui.addFolder( 'Optical components' );
 	showControl = gui.add( GUIParams, 'show' ).name( 'Component(s): ' + show2String() );
@@ -1256,13 +1258,14 @@ function createGUI() {
 	// } );
 	// spiralTypeControl.disable(true);
 	// gui.add( GUIParams, 'cycleSpiralType' ).name( 'Cycle spiral type' );
-	gui.add( GUIParams, '<i>b</i>', 0.001, 
+	gui.add( GUIParams, 'b', 0.001, 
 		0.1, 
-		0.01 ).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.001 )
-		.name( '<i>p</i> (diopter / &deg;)' )
-		.onChange( (pDiopterPerDegree) => {
-			pAFL = pDiopterPerDegree / (Math.PI / 180.0);
+		0.01 )
+		.name('<i>b</i>').onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
+	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.0001 )
+		.name( '<i>q</i> (diopter / &deg;)' )
+		.onChange( (qDiopterPerDegree) => {
+			qAFL = qDiopterPerDegree / (Math.PI / 180.0);
 		} );
 	// gui.add( GUIParams, '<i>f</i><sub>1</sub>', -1, 
 	// 	1, 
@@ -1277,8 +1280,8 @@ function createGUI() {
 	// 		deltaZ = deltaZMin;
 	// 		deltaZControl.setValue(deltaZ);
 	// 	}
-	// 	if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) {
-	// 		postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&phi; > 0');
+	// 	if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaTheta < 0))) {
+	// 		postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&theta; > 0');
 	// 	}
 	// 	deltaZControl.disable(windingFocussing === 2);
 	// } );
@@ -1380,7 +1383,7 @@ function windingFocussing2String() {
 	switch(windingFocussing) {
 	case 0: return 'None';
 	case 1: return 'Alvarez';
-	case 2: return 'Separation';	// (log spiral &amp; &Delta;&phi; > 0)';
+	case 2: return 'Separation';	// (log spiral &amp; &Delta;&theta; > 0)';
 	default: return 'Undefined';
 	}
 }
@@ -1480,7 +1483,7 @@ function addXRInteractivity() {
 
 // return the focal length of the Fresnel lens
 function calculateEquivalentLensF() {
-	return 1/(pAFL*deltaPhi);
+	return 1/(qAFL*deltaTheta);
 }
 
 
@@ -1630,7 +1633,7 @@ function addEventListenersEtc() {
 // 	const params = {
 // 		'Show component 1': raytracingSphereShaderMaterial.uniforms.visible1.value,
 // 		'Show component 2': raytracingSphereShaderMaterial.uniforms.visible2.value,
-// 		'Rotation angle (&deg;)': deltaPhi / Math.PI * 180.,
+// 		'Rotation angle (&deg;)': deltaTheta / Math.PI * 180.,
 // 		'Spiral type': raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value,	// 0 = logarithmic, 1 = Archimedean, 2 = hyperbolic
 // 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 // 		'<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
@@ -1653,7 +1656,7 @@ function addEventListenersEtc() {
 // 		}
 // 	}
 
-// 	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaPhi = a/180.0*Math.PI; } );
+// 	gui.add( params, 'Rotation angle (&deg;)', -180, 180, 1 ).onChange( (a) => { deltaTheta = a/180.0*Math.PI; } );
 
 // 	const folderComponents = gui.addFolder( 'Optical components' );
 // 	folderComponents.add( params, 'Show component 1').onChange( (v) => { raytracingSphereShaderMaterial.uniforms.visible1.value = v; } );
@@ -1662,7 +1665,7 @@ function addEventListenersEtc() {
 // 		{ 
 // 			'Logarithmic': 0, 
 // 			'Archimedean': 1, 
-// 			'Hyperb. <i>r</i>=1/(<i>b&phi;</i>)': 2
+// 			'Hyperb. <i>r</i>=1/(<i>b&theta;</i>)': 2
 // 		} ).onChange( (s) => { raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value = s; });
 // 	folderComponents.add( params, '<i>b</i>', 0.001, 0.1).onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
 // 	folderComponents.add( params, '<i>f</i><sub>1</sub>', -10*1, 10*1).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
@@ -1869,8 +1872,8 @@ function takePhoto() {
 		storedPhotoInfoString = getInfoString();
 
 		storedPhotoDescription = 
-			// `${name}_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
-			appName + `_deltaPhi=${(deltaPhi*180.0/Math.PI).toPrecision(4)}`;
+			// `${name}_deltaTheta=${(deltaTheta*180.0/Math.PI).toPrecision(4)}`;
+			appName + `_deltaTheta=${(deltaTheta*180.0/Math.PI).toPrecision(4)}`;
 		// 
 		document.getElementById('storedPhoto').src=storedPhoto;
 		document.getElementById('storedPhotoThumbnail').src=storedPhoto;
@@ -1945,14 +1948,14 @@ function getInfoString() {
 		'Components shown = ' + show2String() + '<br>\n' +
 		// `Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
 		// `Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
-		`Rotation angle, &Delta;&phi; = ${(deltaPhi*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
+		`Rotation angle, &Delta;&theta; = ${(deltaTheta*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
 		'Spiral type = ' + cylindricalLensSpiralType2String() + '<br>\n' +
 		`Winding parameter, <i>b</i> = ${raytracingSphereShaderMaterial.uniforms.b.value.toPrecision(4)}<br>\n` +	// winding parameter of the spiral
-		`Ratio of focal power to rotation angle, <i>p</i> = ${(pAFL * (Math.PI / 180.0)).toPrecision(4)} diopter/&deg;<br>\n` +	// ratio of focal power to rotation angle
+		`Ratio of focal power to rotation angle, <i>p</i> = ${(qAFL * (Math.PI / 180.0)).toPrecision(4)} diopter/&deg;<br>\n` +	// ratio of focal power to rotation angle
 		// `<i>f</i><sub>1</sub> = ${raytracingSphereShaderMaterial.uniforms.f1.value.toPrecision(4)}<br>\n` +	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		`&Delta;<i>z</i> = ${deltaZ.toPrecision(4)}<br>\n` +
 		'Winding focussing = ' + windingFocussing2String() + '<br>\n' +
-		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaPhi < 0))) ? '<span style="color:red;">*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&phi; > 0! ***</span><br>\n' : '') +
+		(((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaTheta < 0))) ? '<span style="color:red;">*** Warning: separation-based winding focussing only works for logarithmic-spiral lenses and &Delta;&theta; > 0! ***</span><br>\n' : '') +
 		// 'Alvarez winding focussing ' + (raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value?'&check;':'&cross;')+`<br>\n` +
 		`Clear-aperture radius = ${raytracingSphereShaderMaterial.uniforms.radius.value.toPrecision(4)}<br>\n` +	// radius of the Fresnel lens
 		// `<h4>Equivalent lens</h4>\n` +
