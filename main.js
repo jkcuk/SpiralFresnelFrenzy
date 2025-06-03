@@ -1221,6 +1221,7 @@ function createGUI() {
 			background = (background + 1) % 4; 
 			backgroundControl.name( 'Background: ' + background2String() );
 		 },
+		 'fovBackground': fovBackground,
 		// cycleBackground: function() { 
 		// 	background = (background + 1)%4; 
 		// 	backgroundControl.setValue( background2String() );
@@ -1310,7 +1311,8 @@ function createGUI() {
 	// backgroundControl.disable(true);
 	// gui.add( GUIParams, 'cycleBackground').name( 'Cycle background' );
 	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
-	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( (fov) => { fovBackground = fov; });   
+	gui.add( GUIParams, 'fovBackground', 10, 170, 1)
+	.name('Horiz. FOV (&deg;)').onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
 	gui.add( GUIParams, 'Restart camera video');
