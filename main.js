@@ -1233,7 +1233,7 @@ function createGUI() {
 		}
 	}
 
-	gui.add( GUIParams, 'deltaThetaDeg', -180, 180, .1 )
+	gui.add( GUIParams, 'deltaThetaDeg', -180, 180, 1 )
 	.name('&Delta;&theta; (&deg;)')
 	.onChange( (a) => { deltaTheta = a/180.0*Math.PI; } );
 
@@ -1262,7 +1262,7 @@ function createGUI() {
 		0.1, 
 		0.01 )
 		.name('<i>b</i>').onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.0001 )
+	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.01 )
 		.name( '<i>q</i> (diopter / &deg;)' )
 		.onChange( (qDiopterPerDegree) => {
 			qAFL = qDiopterPerDegree / (Math.PI / 180.0);
