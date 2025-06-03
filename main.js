@@ -1179,7 +1179,7 @@ function createGUI() {
 		// },
 		'Radius': raytracingSphereShaderMaterial.uniforms.radius.value,	// radius of the Fresnel lens
 		yXR: yXR, 
-		pDiopterPerDegree: qAFL * (Math.PI / 180.0),	// convert to diopter per degree
+		qDiopterPerDegree: qAFL * (Math.PI / 180.0),	// convert to diopter per degree
 		// '<i>f</i><sub>1</sub>': raytracingSphereShaderMaterial.uniforms.f1.value,	// focal length of cylindrical lens 1 (for Arch. spiral at r=1, for hyp. spiral at phi=1)
 		'&Delta;<i>z</i>': deltaZ,
 		'b': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
@@ -1262,7 +1262,7 @@ function createGUI() {
 		0.1, 
 		0.01 )
 		.name('<i>b</i>').onChange( (b) => {raytracingSphereShaderMaterial.uniforms.b.value = b; } );
-	gui.add( GUIParams, 'pDiopterPerDegree', -.1, .1, 0.01 )
+	gui.add( GUIParams, 'qDiopterPerDegree', -.1, .1, 0.001 )
 		.name( '<i>q</i> (diopter / &deg;)' )
 		.onChange( (qDiopterPerDegree) => {
 			qAFL = qDiopterPerDegree / (Math.PI / 180.0);
