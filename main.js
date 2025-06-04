@@ -34,7 +34,7 @@ let deltaZMin = 0.00001;
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
-let azimuthalPhaseCorrection = 1;	// 0 = Off, 1 = On
+let azimuthalPhaseCorrection = 0;	// 0 = Off, 1 = On
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -42,9 +42,9 @@ let aspectRatioVideoFeedE = 4.0/3.0;
 let renderer;
 let videoFeedU, videoFeedE;	// feeds from user/environment-facing cameras
 let videoFeedUTexture, videoFeedETexture;
-let textureTIM, textureEarthrise, textureAldrin, texturePillars, textureLunch, textureHalfDome, textureBlueMarble;
-let aspectRatioTIM, aspectRatioEarthrise, aspectRatioAldrin, aspectRatioPillars, aspectRatioLunch, aspectRatioHalfDome, aspectRatioBlueMarble;
-let backgroundColourTIM, backgroundColourEarthrise, backgroundColourAldrin, backgroundColourPillars, backgroundColourLunch, backgroundColourHalfDome, backgroundColourBlueMarble;
+let textureTIM, textureEarthrise, textureAldrin, textureHalfDome;
+let aspectRatioTIM, aspectRatioAldrin, aspectRatioHalfDome;
+let backgroundColourTIM, backgroundColourAldrin, backgroundColourHalfDome;
 let camera;
 let controls;
 let raytracingSphere;
