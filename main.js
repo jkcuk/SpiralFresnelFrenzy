@@ -1224,7 +1224,7 @@ function createGUI() {
 		},
 		azimuthalPhaseCorrection: function() {
 			azimuthalPhaseCorrection = (azimuthalPhaseCorrection + 1) % 3;
-			azimuthalPhaseCorrectionControl.name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
+			azimuthalPhaseCorrectionControl.name( 'Azim. phase corr. (APC): ' + azimuthalPhaseCorrection2String() );
 			RAPCControl.disable(azimuthalPhaseCorrection != 2);	
 			DeltaRAPCControl.disable(azimuthalPhaseCorrection != 2);	
 		},
@@ -1303,7 +1303,8 @@ function createGUI() {
 	// 	0.01 ).onChange( (f1) => { raytracingSphereShaderMaterial.uniforms.f1.value = f1; } );
 	deltaZControl = gui.add( GUIParams, '&Delta;<i>z</i>', deltaZMin, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
 	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing: ' + windingFocussing2String() );	// .name( 'Winding focussing' );
-	azimuthalPhaseCorrectionControl = gui.add( GUIParams, 'azimuthalPhaseCorrection' ).name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
+	azimuthalPhaseCorrectionControl = gui.add( GUIParams, 'azimuthalPhaseCorrection' )
+	.name( 'Azim. phase corr. (APC): ' + azimuthalPhaseCorrection2String() );
 	RAPCControl = gui.add( GUIParams, 'RAPC', 0.0, 1.0, 0.01 )
 	.name('<i>R</i><sub>APC</sub> / <i>R</i><sub>lens</sub>')
 	.disable(azimuthalPhaseCorrection != 2)
