@@ -34,7 +34,9 @@ let deltaZMin = 0.00001;
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
-let azimuthalPhaseCorrection = 0;	// 0 = Off, 1 = On
+let RAPC = 0.5;	// in metres; if azimuthalPhaseCorrection = 2, no APC will be applied for R > RAPC + DeltaRAPC/2
+let DeltaRAPC = 0.1;	// in metres; if azimuthalPhaseCorrection = 2, APC will be applied for R < RAPC - DeltaRAPC/2
+let azimuthalPhaseCorrection = 0;	// 0 = Off, 1 = On, 2 = On (for R < RAPC - DeltaRAPC/2; partially for R between RAPC - DeltaRAPC/2 and RAPC + DeltaRAPC/2)
 
 let scene;
 let aspectRatioVideoFeedU = 4.0/3.0;
@@ -77,7 +79,7 @@ let info;	// = document.createElement('div');
 
 let gui;
 let GUIParams;
-let showControl, spiralTypeControl, windingFocussingControl, azimuthalPhaseCorrectionControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
+let showControl, spiralTypeControl, windingFocussingControl, azimuthalPhaseCorrectionControl, RAPCControl, DeltaRAPCControl, deltaZControl, backgroundControl, autofocusControl, focusDistanceControl;
 // let folderComponents, folderBackground, folderVirtualCamera;
 
 
@@ -356,9 +358,15 @@ function updateUniforms() {
 		case 0:	// Off
 			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = false;
 			break;
+		case 2: // On (for R < RAPC - DeltaRAPC/2; partially for R between RAPC - DeltaRAPC/2 and RAPC + DeltaRAPC/2)
+			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = true;
+			raytracingSphereShaderMaterial.uniforms.RAPC0.value = RAPC + 0.5*DeltaRAPC;	// RAPC + DeltaRAPC/2
+			raytracingSphereShaderMaterial.uniforms.RAPC1.value = RAPC - 0.5*DeltaRAPC;	// RAPC - DeltaRAPC/2
+			break;
 		case 1:	// On
 		default:
-			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = true;		
+			raytracingSphereShaderMaterial.uniforms.azimuthalPhaseCorrection.value = true;
+			raytracingSphereShaderMaterial.uniforms.RAPC1.value = Infinity;	// azimuthal phase correction for all radii
 	}
 
 	raytracingSphereShaderMaterial.uniforms.phi1.value = 0;	// -0.5*deltaTheta;
@@ -637,7 +645,9 @@ function addRaytracingSphere() {
 			b2pi: { value: 0 },	// b*2 pi; pre-calculated in updateUniforms()
 			nHalf: { value: 0 },	// pre-calculated in updateUniforms()
 			alvarezWindingFocusing: { value: windingFocussing == 1 },
-			azimuthalPhaseCorrection: { value: azimuthalPhaseCorrection == 1 },
+			azimuthalPhaseCorrection: { value: azimuthalPhaseCorrection != 0 },	// true if azimuthal phase correction is on, false otherwise
+			RAPC0: { value: RAPC + 0.5*DeltaRAPC },	// if azimuthalPhaseCorrection == 2, this is the radius above which the azimuthal phase correction is turned off
+			RAPC1: { value: (azimuthalPhaseCorrection == 2)?RAPC - 0.5*DeltaRAPC:Infinity },
 			showEquivalentLens: { value: false },
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
@@ -694,6 +704,8 @@ function addRaytracingSphere() {
 			uniform float nHalf;	// pre-calculated
 			uniform bool alvarezWindingFocusing;
 			uniform bool azimuthalPhaseCorrection;
+			uniform float RAPC0;	// if azimuthalPhaseCorrection == 2, this is the radius above which the azimuthal phase correction is turned off
+			uniform float RAPC1;	// if azimuthalPhaseCorrection == 2, this is the radius below which the azimuthal phase correction is turned on
 			uniform bool showEquivalentLens;
 			uniform float equivalentLensF;
 
@@ -837,6 +849,20 @@ function addRaytracingSphere() {
 				}
 			}
 
+			// Azimuthal phase correction is fully applied for R < RAPC1, partially for RAPC1 < R < RAPC0, and not applied for R > RAPC0.
+			// Calculate a factor that represents this.
+			// This factor takes the value 1 for R < RAPC1, 0 for R > RAPC0, and which smoothly interpolates for RAPC1 < R < RAPC0.
+			float calculateAPCFactor(float R) {
+				// first check if R < RAPC1
+				if(R < RAPC1) { return 1.0; }
+				// then check if R > RAPC0
+				else if(R > RAPC0) { return 0.0; }
+				// otherwise, interpolate between 1 and 0
+				else 
+					// return (R - RAPC0) / (RAPC1 - RAPC0);
+					return 0.5*(1.0 + cos(PI*(R - RAPC1) / (RAPC0 - RAPC1)));
+			}
+
 			// For the position (x, y), calculate the derivatives of the phase w.r.t. x and y, divided by k, i.e. (d (phase/k) / d x, d (phase/k) / d y).
 			// The spiral is rotated by deltaTheta.
 			// r2 is the square of r, which we need to calculate r and which we have already calculated, so we might
@@ -868,7 +894,7 @@ function addRaytracingSphere() {
 					}
 
 					if(azimuthalPhaseCorrection) {
-						c = b*b*b*psi*psi / (2.0*f1*r2);
+						c = calculateAPCFactor(b*psi) * b*b*b*psi*psi / (2.0*f1*r2);
 						v += vec2(
 							-c*y,
 							+c*x
@@ -906,7 +932,7 @@ function addRaytracingSphere() {
 					// 		);
 					// 	}
 					// }
-				case 2:	// hyperbolic r = 1/(-b psi)
+				case 2:	// hyperbolic R = 1/(-b psi)
 					c = (b*r*psi + 1.0) / (2.0*b*f1*r2*psi*psi);
 
 					v = vec2(
@@ -915,7 +941,7 @@ function addRaytracingSphere() {
 					);
 
 					if(azimuthalPhaseCorrection) {
-						c = 1.0 / (2.0*b*f1*r2*psi*psi);
+						c = calculateAPCFactor(-1.0/(b*psi)) / (2.0*b*f1*r2*psi*psi);
 						v += vec2(
 							-y*c,
 							 x*c
@@ -943,7 +969,7 @@ function addRaytracingSphere() {
 					}
 
 					if(azimuthalPhaseCorrection) {
-						c = b*R2 / (2.0*f1*r2);
+						c = calculateAPCFactor(R) * b*R2 / (2.0*f1*r2);
 						v += vec2(
 							-y*c,
 							+x*c
@@ -1197,9 +1223,13 @@ function createGUI() {
 			deltaZControl.disable(windingFocussing === 2);	
 		},
 		azimuthalPhaseCorrection: function() {
-			azimuthalPhaseCorrection = (azimuthalPhaseCorrection + 1) % 2;
+			azimuthalPhaseCorrection = (azimuthalPhaseCorrection + 1) % 3;
 			azimuthalPhaseCorrectionControl.name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
+			RAPCControl.disable(azimuthalPhaseCorrection != 2);	
+			DeltaRAPCControl.disable(azimuthalPhaseCorrection != 2);	
 		},
+		RAPC: RAPC,
+		DeltaRAPC: DeltaRAPC,
 		// 'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
 		'Horiz. FOV (&deg;)': fovScreen,
 		'Aperture radius': apertureRadius,
@@ -1274,6 +1304,16 @@ function createGUI() {
 	deltaZControl = gui.add( GUIParams, '&Delta;<i>z</i>', deltaZMin, 0.01, 0.00001).onChange( (dz) => { deltaZ = dz; } );
 	windingFocussingControl = gui.add( GUIParams, 'windingFocussing' ).name( 'Winding focussing: ' + windingFocussing2String() );	// .name( 'Winding focussing' );
 	azimuthalPhaseCorrectionControl = gui.add( GUIParams, 'azimuthalPhaseCorrection' ).name( 'Azimuthal phase correction: ' + azimuthalPhaseCorrection2String() );
+	RAPCControl = gui.add( GUIParams, 'RAPC', 0.0, 1.0, 0.01 )
+	.name('<i>R</i><sub>APC</sub> / <i>R</i><sub>lens</sub>')
+	.disable(azimuthalPhaseCorrection != 2)
+	.onChange( (rr) => { RAPC = rr*raytracingSphereShaderMaterial.uniforms.radius.value; } );	// radius for azimuthal phase correction
+	// RAPCControl.disable(azimuthalPhaseCorrection != 2);	
+	DeltaRAPCControl = gui.add( GUIParams, 'DeltaRAPC', 0.0, 1.0, 0.01 )
+	.name('&Delta;<i>R</i><sub>APC</sub> / <i>R</i><sub>lens</sub>')
+	.disable(azimuthalPhaseCorrection != 2)
+	.onChange( (rr) => { DeltaRAPC = rr*raytracingSphereShaderMaterial.uniforms.radius.value; } );	// radius for azimuthal phase correction
+	// DeltaRAPCControl.disable(azimuthalPhaseCorrection != 2);	
 	// windingFocussingControl.domElement.addEventListener( 'click', () => {
 	// 	windingFocussing = (windingFocussing + 1) % 3;
 	// 	windingFocussingControl.setValue( windingFocussing2String() );
@@ -1288,7 +1328,9 @@ function createGUI() {
 	// } );
 	// gui.add( GUIParams, 'Alvarez winding focussing' ).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value = a; } );
 	// gui.add( GUIParams, 'Show equivalent ideal lens' ).onChange( (s) => {raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = s; } );
-	gui.add( GUIParams, 'Radius', 0.1, 10, 0.1 ).onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
+	gui.add( GUIParams, 'Radius', 0.1, 10, 0.1 )
+	.name('<i>R</i><sub>lens</sub>')
+	.onChange( (r) => {raytracingSphereShaderMaterial.uniforms.radius.value = r; } );
 	gui.add( GUIParams, 'yXR', 0, 2, 0.1 ).name('<i>y</i><sub>XR</sub>').onChange( (y) => {yXR = y;} );
 
 	// const folderBackground = gui.addFolder( 'Background' );
@@ -1394,6 +1436,7 @@ function azimuthalPhaseCorrection2String() {
 	switch( azimuthalPhaseCorrection ) {
 		case 0: return 'Off';
 		case 1: return 'On';
+		case 2: return 'On (<i>R</i><<i>R</i><sub>APC</sub>)';
 		default: return 'Undefined';
 	}
 }
