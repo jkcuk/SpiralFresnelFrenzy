@@ -310,12 +310,19 @@ function updateUniforms() {
 		raytracingSphereShaderMaterial.uniforms.visible2.value = true;
 		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
 		break;
-	case 3:	// equivalent lens
+	case 3:	// equivalent ideal lens
 		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
 		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
 		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = true;
+		raytracingSphereShaderMaterial.uniforms.equivalentLensIdeal.value = true;
 		break;
-	case 4:	// none
+	case 4:	// equivalent lens hologram
+		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
+		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
+		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = true;
+		raytracingSphereShaderMaterial.uniforms.equivalentLensIdeal.value = false;
+		break;
+	case 5:	// none
 		raytracingSphereShaderMaterial.uniforms.visible1.value = false;
 		raytracingSphereShaderMaterial.uniforms.visible2.value = false;
 		raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value = false;
@@ -649,6 +656,7 @@ function addRaytracingSphere() {
 			RAPC0: { value: RAPC + 0.5*DeltaRAPC },	// if azimuthalPhaseCorrection == 2, this is the radius above which the azimuthal phase correction is turned off
 			RAPC1: { value: (azimuthalPhaseCorrection == 2)?RAPC - 0.5*DeltaRAPC:Infinity },
 			showEquivalentLens: { value: false },
+			equivalentLensIdeal: { value: true },
 			equivalentLensF: { value: 1e10 },
 			videoFeedUTexture: { value: videoFeedUTexture }, 
 			videoFeedETexture: { value: videoFeedETexture }, 
@@ -707,6 +715,7 @@ function addRaytracingSphere() {
 			uniform float RAPC0;	// if azimuthalPhaseCorrection == 2, this is the radius above which the azimuthal phase correction is turned off
 			uniform float RAPC1;	// if azimuthalPhaseCorrection == 2, this is the radius below which the azimuthal phase correction is turned on
 			uniform bool showEquivalentLens;
+			uniform bool equivalentLensIdeal;	// true if the equivalent lens is an ideal thin lens, false if it is a lens hologram
 			uniform float equivalentLensF;
 
 			// video feed from user-facing camera
@@ -1033,7 +1042,7 @@ function addRaytracingSphere() {
 					c,	// centreOfLens
 					radius, 
 					equivalentLensF,	// focal length
-					true	// idealLens
+					equivalentLensIdeal	// idealLens
 				);
 
 				// lower the brightness factor, giving the light a blue tinge
@@ -1184,7 +1193,7 @@ function createGUI() {
 
 	GUIParams = {
 		show: function() {
-			show = (show + 1) % 5;
+			show = (show + 1) % 6;
 			showControl.name( 'Component(s): ' + show2String() );
 		},
 		// cycleShow: function() {
@@ -1418,8 +1427,9 @@ function show2String() {
 	case 0: return 'Both parts';
 	case 1: return 'Part 1';
 	case 2: return 'Part 2';
-	case 3: return 'Equivalent lens';
-	case 4: return 'None';
+	case 3: return 'Equivalent ideal lens';
+	case 4: return 'Equivalent lens hologram';
+	case 5: return 'None';
 	default: return 'Undefined';
 	}
 }
