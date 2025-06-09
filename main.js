@@ -1447,7 +1447,7 @@ function azimuthalPhaseCorrection2String() {
 	switch( azimuthalPhaseCorrection ) {
 		case 0: return 'Off';
 		case 1: return 'On';
-		case 2: return 'On (<i>R</i><<i>R</i><sub>APC</sub>)';
+		case 2: return 'Partial';
 		default: return 'Undefined';
 	}
 }
