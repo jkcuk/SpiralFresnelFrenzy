@@ -1220,9 +1220,10 @@ function createGUI() {
 		'b': raytracingSphereShaderMaterial.uniforms.b.value,	// winding parameter of the spiral
 		// 'Alvarez winding focussing': raytracingSphereShaderMaterial.uniforms.alvarezWindingFocusing.value,
 		windingFocussing: function() {
+			// 0: 'None', 1: 'Alvarez', 2: 'Separation'
 			windingFocussing = (windingFocussing + 1) % 3;
 			windingFocussingControl.name( 'Winding focussing: ' + windingFocussing2String() );
-			if(windingFocussing === 1) {
+			if((windingFocussing === 0) || (windingFocussing === 1)) {
 				deltaZ = deltaZMin;
 				deltaZControl.setValue(deltaZ);
 			}
@@ -1266,6 +1267,7 @@ function createGUI() {
 		// 	backgroundControl.setValue( background2String() );
 		// },
 		'Point forward (in -<b>z</b> direction)': pointForward,
+		'Point backward (in +<b>z</b> direction)': pointBackward,
 		'Show/hide info': toggleInfoVisibility,
 		'Restart camera video': function() { 
 			recreateVideoFeeds(); 
@@ -1390,6 +1392,7 @@ function createGUI() {
 	// folderVirtualCamera.add( atanFocusDistance, 'atan focus dist', -0.5*Math.PI, +0.5*Math.PI ).listen();
 	gui.add( GUIParams, 'No of rays', 1, 100, 1).onChange( (n) => { noOfRays = n; } );
 	gui.add( GUIParams, 'Point forward (in -<b>z</b> direction)' );
+	gui.add( GUIParams, 'Point backward (in +<b>z</b> direction)' );
 	// folderVirtualCamera.close();
 
 	// const folderSettings = gui.addFolder( 'Other controls' );
@@ -1825,6 +1828,31 @@ function  pointForward() {
 		controls.update();
 	}
 	postStatus('Pointing camera forwards (in -<b>z</b> direction)');
+}
+
+function  pointBackward() {
+	// renderer.xr.getCamera() HERE
+	// are we in VR mode?
+	if(renderer.xr.enabled && renderer.xr.isPresenting) {
+		// see https://github.com/mrdoob/three.js/blob/master/examples/webxr_vr_teleport.html
+		const offsetPosition = { x: 1, y: 0, z: 1, w: 1 };
+		const offsetRotation = new THREE.Quaternion();
+		const transform = new XRRigidTransform( offsetPosition, offsetRotation );
+		const teleportSpaceOffset = baseReferenceSpace.getOffsetReferenceSpace( transform );
+
+		renderer.xr.setReferenceSpace( teleportSpaceOffset );
+
+		// renderer.xr.getCamera().position.x = 0;
+		// // renderer.xr.getCamera().position.y = 0;
+		// renderer.xr.getCamera().position.z = r;	
+	} else {
+		let r = camera.position.length();
+		camera.position.x = 0;
+		camera.position.y = 0;
+		camera.position.z = -r;
+		controls.update();
+	}
+	postStatus('Pointing camera backwards (in +<b>z</b> direction)');
 }
 
 function onWindowResize() {
