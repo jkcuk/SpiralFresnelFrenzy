@@ -1,5 +1,7 @@
 Simulates the view through a spiral adaptive Fresnel lens (see JOSA A **42**, 211-220 (2025), [DOI: 10.1364/JOSAA.540585](https://doi.org/10.1364/JOSAA.540585)).
 
+### Bug
+
 Note that, on certain devices, the simulated spiral adaptive Fresnel lens has no effect when looking through it in the "forward" (-**z**) direction.
 It is a mystery to us why this is the case, and so far we have not been able to fix this bug.
 
