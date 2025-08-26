@@ -29,8 +29,9 @@ let appDescription = 'the premier AR tool for simulating adaptive spiral Fresnel
 
 let qAFL = 1/(100*Math.PI/180.0);	// the ratio of focal power and the angle between the two components (in radians)
 let deltaTheta = 10.0*Math.PI/180.0;	// angle by which components are rotated relative to each other (in radians)
-let deltaZ = 0.00001;
-let deltaZMin = 0.00001;
+let deltaZMin = 0.00001;	// minimum separation of the two components (in metres)
+let deltaZUser = deltaZMin;	// user-requested separation of the two components (in metres)
+let deltaZ = deltaZMin; // separation of the two components (in metres)
 let yXR = 1.5;
 let show = 0;	// 0 = both parts, 1 = part 1, 2 = part 2, 3 = equivalent lens, 4 = None
 let windingFocussing = 1;	// 0 = None, 1 = Alvarez, 2 = separation (works for log. spiral only!)
@@ -1223,12 +1224,15 @@ function createGUI() {
 			// 0: 'None', 1: 'Alvarez', 2: 'Separation'
 			windingFocussing = (windingFocussing + 1) % 3;
 			windingFocussingControl.name( 'Winding focussing: ' + windingFocussing2String() );
-			if((windingFocussing === 0) || (windingFocussing === 1)) {
-				deltaZ = deltaZMin;
+			if(windingFocussing === 0) {
+				deltaZ = deltaZUser;
 				deltaZControl.setValue(deltaZ);
 			}
-			if((windingFocussing === 2) && ((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaTheta < 0))) {
-				postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&theta; > 0');
+			if(windingFocussing === 2) {
+				deltaZUser = deltaZ;
+				if((raytracingSphereShaderMaterial.uniforms.cylindricalLensSpiralType.value != 0) || (deltaTheta < 0)) {
+					postStatus('Warning: Winding focussing through separation works only for log. spirals and &Delta;&theta; > 0');
+				}
 			}
 			deltaZControl.disable(windingFocussing === 2);	
 		},
