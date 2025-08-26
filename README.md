@@ -7,3 +7,4 @@ It is a mystery to us why this is the case, and so far we have not been able to 
 
 At the moment, the best we can offer is the following workaround:  
 the effect of the simulated spiral adaptive Fresnel lens appears to be correctly simulated when looking through it in the "backward" (+**z**) direction, and this can be effected by clicking the "Point backward (in +**z** direction)" button at the bottom of the menu.
+Note that this changes the handedness of the cylindrical-lens spirals that form the spiral adaptive Fresnel lens, so the view looks slightly different!
