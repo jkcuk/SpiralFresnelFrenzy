@@ -869,8 +869,9 @@ function addRaytracingSphere() {
 				else if(R > RAPC0) { return 0.0; }
 				// otherwise, interpolate between 1 and 0
 				else 
-					// return (R - RAPC0) / (RAPC1 - RAPC0);
-					return 0.5*(1.0 + cos(PI*(R - RAPC1) / (RAPC0 - RAPC1)));
+					// return (R - RAPC0) / (RAPC1 - RAPC0);	// linear
+					// return (R - RAPC0) / (RAPC1 - RAPC0) * (R - RAPC0) / (RAPC1 - RAPC0);	// quadratic
+					return 0.5*(1.0 + cos(PI*(R - RAPC1) / (RAPC0 - RAPC1)));	// soft step
 			}
 
 			// For the position (x, y), calculate the derivatives of the phase w.r.t. x and y, divided by k, i.e. (d (phase/k) / d x, d (phase/k) / d y).
