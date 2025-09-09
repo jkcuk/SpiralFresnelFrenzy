@@ -1246,7 +1246,7 @@ function createGUI() {
 		RAPC: RAPC,
 		DeltaRAPC: DeltaRAPC,
 		// 'Show equivalent ideal lens': raytracingSphereShaderMaterial.uniforms.showEquivalentLens.value,
-		'Horiz. FOV (&deg;)': fovScreen,
+		'fovScreen': fovScreen,
 		'Aperture radius': apertureRadius,
 		'tan<sup>-1</sup>(focus. dist.)': atanFocusDistance,
 		'No of rays': noOfRays,
@@ -1371,14 +1371,16 @@ function createGUI() {
 	// gui.add( GUIParams, 'cycleBackground').name( 'Cycle background' );
 	gui.add( GUIParams, 'tan<sup>-1</sup>(distance)', Math.atan(0.1), 0.5*Math.PI).onChange( (a) => { raytracingSphereShaderMaterial.uniforms.videoDistance.value = Math.tan(a); } );
 	gui.add( GUIParams, 'fovBackground', 10, 170, 1)
-	.name('Horiz. FOV (&deg;)').onChange( (fov) => { fovBackground = fov; });   
+	.name('Backg. FOV (&deg;)').onChange( (fov) => { fovBackground = fov; });   
 	// folderBackground.add( params, 'Env.-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedE = fov; });   
 	// folderBackground.add( params, 'User-facing cam. (&deg;)', 10, 170, 1).onChange( (fov) => { fovVideoFeedU = fov; });   
 	gui.add( GUIParams, 'Restart camera video');
 	// folderBackground.close();
 
 	// const folderVirtualCamera = gui.addFolder( 'Virtual camera' );
-	gui.add( GUIParams, 'Horiz. FOV (&deg;)', 10, 170, 1).onChange( setScreenFOV );
+	gui.add( GUIParams, 'fovScreen', 10, 170, 1)
+	.name('Cam. FOV (&deg;)')
+	.onChange( setScreenFOV );
 	gui.add( GUIParams, 'Aperture radius', 0.0, 1.0, 0.01).onChange( (r) => { apertureRadius = r; } );
 	// gui.add( GUIParams, 'Autofocus' ).onChange( (b) => { autofocus = b; focusDistanceControl.disable(autofocus); } );
 	autofocusControl = gui.add( GUIParams, 'autofocus' ).name( 'Autofocus: ' + (autofocus?'On':'Off') );
