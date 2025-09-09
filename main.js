@@ -1196,7 +1196,7 @@ function createGUI() {
 	GUIParams = {
 		show: function() {
 			show = (show + 1) % 6;
-			showControl.name( 'Component(s): ' + show2String() );
+			showControl.name( 'Show: ' + show2String() );
 		},
 		// cycleShow: function() {
 		// 	show = (show + 1) % 4;
@@ -1285,7 +1285,7 @@ function createGUI() {
 	.onChange( (a) => { deltaTheta = a/180.0*Math.PI; } );
 
 	// const folderComponents = gui.addFolder( 'Optical components' );
-	showControl = gui.add( GUIParams, 'show' ).name( 'Component(s): ' + show2String() );
+	showControl = gui.add( GUIParams, 'show' ).name( 'Show: ' + show2String() );
 	// showControl.domElement.addEventListener( 'click', () => {
 	// 	show = (show + 1) % 4;
 	// 	showControl.setValue( show2String() );
@@ -1432,12 +1432,12 @@ function background2String() {
 
 function show2String() {
 	switch(show) {
-	case 0: return 'Both parts';
-	case 1: return 'Part 1';
-	case 2: return 'Part 2';
-	case 3: return 'Equivalent ideal lens';
-	case 4: return 'Equivalent lens hologram';
-	case 5: return 'None';
+	case 0: return 'Both components';
+	case 1: return 'Component 1';
+	case 2: return 'Component 2';
+	case 3: return 'Equiv. ideal lens';
+	case 4: return 'Equiv. lens hologram';
+	case 5: return 'No component(s)';
 	default: return 'Undefined';
 	}
 }
@@ -2034,7 +2034,7 @@ function postStatus(text) {
 
 function getInfoString() {
 	return `<h4>Spiral Fresnel lens</h4>\n` +
-		'Components shown = ' + show2String() + '<br>\n' +
+		'Show ' + show2String() + '<br>\n' +
 		// `Show component 1 `+ (raytracingSphereShaderMaterial.uniforms.visible1.value?'&check;':'&cross;')+`<br>\n` +
 		// `Show component 2 `+ (raytracingSphereShaderMaterial.uniforms.visible2.value?'&check;':'&cross;')+`<br>\n` +
 		`Rotation angle, &Delta;&theta; = ${(deltaTheta*180.0/Math.PI).toPrecision(4)}&deg;<br>\n` +
